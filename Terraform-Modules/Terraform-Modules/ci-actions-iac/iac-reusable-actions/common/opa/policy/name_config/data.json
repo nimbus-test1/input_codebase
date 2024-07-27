@@ -1,0 +1,15 @@
+{
+  "aws_eks_cluster_auth": {
+      "resources": [
+        "aws_eks_cluster_auth",
+        "helm_release"
+      ],
+      "regex":"^[a-z_-]+$"
+    },
+  "google_compute_instance": {
+    "resources": [
+      "google_compute_instance"
+    ],
+    "regex": "^[a-z_-]+$"
+  }
+}

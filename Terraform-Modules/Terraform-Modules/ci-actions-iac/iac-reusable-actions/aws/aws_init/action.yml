@@ -1,0 +1,80 @@
+# action.yaml
+name: Terraform Validate and Scan
+description: Terraform Validate
+inputs:
+  tf_state_s3_bucket_name:
+    required: true
+    description: "TF State Bucket Name"
+  tf_state_file_key_name:
+    required: true
+    description: "TF State File"
+  tf_state_lock_dd_table_name:
+    required: true
+    description: "TF State File lock DynamoDB table name"
+  iam_role_to_assume:
+    required: true
+    description: "AWS IAM role to assume to deploy infrastructure"
+  region:
+    required: true
+    description: "AWS region"
+  working_directory:
+    required: true
+    description: "Working directory of root terraform module"
+  token:
+    required: false
+    description: "GITHUB token"
+    default: ''
+  terraform_version:
+    required: false
+    description: "Terraform version"
+    default: "1.7.5"
+  gh_app_id:
+    required: false
+    description: "Github App ID"
+  gh_app_private_key:
+    required: false
+    description: "Github App Private Key"
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: false
+
+    - name: Configure AWS credentials 
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.iam_role_to_assume }}
+        role-session-name: GitHub_to_AWS_via_FederatedOIDC
+        aws-region: ${{ inputs.region }}
+        role-duration-seconds: 3600
+
+    - name: Get githubapp access token
+      id: ghapp_access_token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ inputs.gh_app_id }}
+        private-key: ${{ inputs.gh_app_private_key }}
+        owner: "test-org"  # all aws modules are under test-org
+
+    - name: Configure Git 
+      run: |
+        git config --global url."https://oauth2:${GH_token}@github.com".insteadOf https://github.com
+      shell: bash
+      env:
+        GH_token: ${{ steps.ghapp_access_token.outputs.token }}
+
+    - name: Initialize Terraform
+      run: |
+        terraform init \
+          -backend-config="bucket=${{ inputs.tf_state_s3_bucket_name }}" \
+          -backend-config="key=${{ inputs.tf_state_file_key_name }}" \
+          -backend-config="dynamodb_table=${{ inputs.tf_state_lock_dd_table_name }}" \
+          -backend-config="encrypt=true"
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+

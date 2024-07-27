@@ -1,0 +1,36 @@
+# action.yaml
+name: Terraform Validate and Scan
+description: Terraform Validate
+inputs:
+
+  working_directory:
+    required: true
+    description: "Working directory of root terraform module"
+  provider:
+    required: true
+    description: "Provider to apply"
+  gcp_access_token:
+    required: false
+    description: "Access token for GCP"
+
+runs:
+  using: 'composite'
+  steps:
+  
+    - name: Download Terraform plan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan_output_file.json
+        path: ${{ inputs.working_directory }}
+
+    - name: Terraform Apply
+      run: |
+        # ls tfplan_output_file.json
+        # terraform show tfplan_output_file.json
+        if [[ "${{ inputs.provider }}" == "gcp" ]]; then
+          echo "Set oauth token in environment variables for GCP"
+          export GOOGLE_OAUTH_ACCESS_TOKEN=${{ inputs.gcp_access_token }}
+        fi
+        terraform apply tfplan_output_file.json
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}

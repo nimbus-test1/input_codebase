@@ -1,0 +1,8 @@
+receipts:
+  test-org:
+    terraform-aws-module-apigateway: 
+      run: 'terratest.yml'
+    terraform-aws-module-rds: 
+      run: 'terratest.yml'
+    terraform-aws-module-sqs: 
+      run: 'terratest.yml'

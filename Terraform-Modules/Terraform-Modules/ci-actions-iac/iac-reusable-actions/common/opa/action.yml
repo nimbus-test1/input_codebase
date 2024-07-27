@@ -1,0 +1,31 @@
+name: "Validate Terraform Plan"
+description: "Validates tag values of Cloud Infrastructure created in Terraform to ensure they are compliant with McD Standards"
+inputs:
+  tfplan-file-path:
+    description: "Path to terraform file"
+    required: true
+  exit-on-failure:
+    description: Exit code 1 (fails pipeline) during evalutation failure. Valid values are 'true' or 'false'
+    required: true
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup OPA
+      uses: open-policy-agent/setup-opa@v2
+      with:
+        version: latest
+    
+    - name: run python transform
+      shell: bash
+      env:
+        JSON_FILE: ${{ inputs.tfplan-file-path }} 
+      run: |
+        python ${GITHUB_ACTION_PATH}/convertTFPlan.py
+
+    - name: Run OPA Evaluation
+      shell: bash
+      run: | 
+        ${{ github.action_path }}/opa-actions.sh ${{ inputs.tfplan-file-path }} ${{ inputs.exit-on-failure }}
+        

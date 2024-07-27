@@ -1,0 +1,16 @@
+identifier             = "mysql-db-01"
+db_name                = "amardb"
+port                   = "3306"
+engine                 = "mysql"
+major_engine_version   = "8.0"
+family                 = "mysql8.0"
+instance_class         = "db.t3.micro"
+username               = "testTestUser"
+allocated_storage      = 20
+skip_final_snapshot    = true
+vpc_security_group_ids = ["sg-0eebcfda259a30c96"]
+create_db_subnet_group = true
+db_subnet_group_name   = "test_test_subnet_group"
+subnet_ids             = ["subnet-0923369b1fc273cc1", "subnet-0a649772fa87be18e"]
+ca_cert_identifier     = "rds-ca-rsa4096-g1"
+apply_immediately      = true

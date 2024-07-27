@@ -1,0 +1,49 @@
+assembly-versioning-format: '{Major}.{Minor}.{Patch}.{CommitsSinceVersionSource}'
+mode: Mainline
+assembly-versioning-scheme: MajorMinorPatch
+assembly-file-versioning-scheme: MajorMinorPatch
+assembly-informational-format: MajorMinorPatch
+increment: Patch
+continuous-delivery-fallback-tag: ci
+tag-prefix: '[vV]'
+major-version-bump-message: '\+semver:\s?(breaking|major)'
+minor-version-bump-message: '\+semver:\s?(feature|minor)'
+patch-version-bump-message: '\+semver:\s?(fix|patch)'
+no-bump-message: '\+semver:\s?(none|skip)'
+legacy-semver-padding: 4
+build-metadata-padding: 4
+commits-since-version-source-padding: 4
+tag-pre-release-weight: 60000
+commit-message-incrementing: Enabled
+merge-message-formats: {}
+update-build-number: true
+branches:
+  main:
+    mode: ContinuousDelivery
+    tag: ''
+    increment: Patch
+    regex: main
+  feature:
+    mode: ContinuousDelivery
+    tag: useBranchName
+    increment: None
+    regex: (origin\/)?features?(\/develop)?[/-]
+  hotfix:
+    mode: ContinuousDelivery
+    tag: useBranchName
+    increment: None
+    prevent-increment-of-merged-branch-version: true
+    regex: (origin\/)?bugfix(es)?(\/develop)?[/-]
+  dev:
+    mode: ContinuousDelivery
+    tag: dev
+    increment: None
+    prevent-increment-of-merged-branch-version: true
+    regex: dev$
+    source-branches: []
+    is-source-branch-for:
+    - feature
+    - hotfix
+    tracks-release-branches: false
+ignore:
+  sha: []

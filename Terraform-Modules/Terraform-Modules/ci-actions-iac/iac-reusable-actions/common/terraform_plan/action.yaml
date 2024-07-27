@@ -1,0 +1,154 @@
+# action.yaml
+name: Terraform Validate and Scan
+description: Terraform Validate
+inputs:
+
+  working_directory:
+    required: true
+    description: "Working directory of root terraform module"
+  tf_var_args:
+    required: false
+    description: "one or more -var='foo=bar' arguments"
+  tf_var_file_path:
+    required: false
+    description: "Path to terraform variables file"
+    default: ''
+  provider:
+    required: true
+    description: "Provider to plan"
+  gcp_access_token:
+    required: false
+    description: "Access token for GCP"
+  destroy_plan:
+    required: false
+    description: "Flag to indicate whether to destroy resources"
+    default: 'false'
+  gh_app_id:
+    required: false
+    description: "Github App ID to create PR"
+  gh_app_private_key:
+    required: false
+    description: "Github App Private Key to create PR"
+  token:
+    required: false
+    description: "GITHUB token"
+    default: ''
+  approvers:
+    required: false
+    description: "Approvers for manual approval"
+    default: ''
+    
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Plan Terraform
+      run: |
+        if [[ "${{ inputs.provider }}" == "gcp" ]]; then
+          echo "Set oauth token in environment variables for GCP"
+          export GOOGLE_OAUTH_ACCESS_TOKEN=${{ inputs.gcp_access_token }}
+        fi
+        echo "Workspace : $GITHUB_WORKSPACE"
+        set +e
+        if [[ "${{ inputs.destroy_plan }}" == "true" ]]; then
+          echo "Destroy plan"
+          TF_CMD="terraform plan -destroy -no-color -out=tfplan_output_file.json"
+        else
+          echo "Normal plan"
+          TF_CMD="terraform plan -no-color -out=tfplan_output_file.json"
+        fi
+        #TF_CMD="terraform plan -no-color -out=tfplan_output_file.json"
+        if [ -n "${{ inputs.tf_var_file_path }}" ]; then
+          echo "Using terraform variables file ${{ inputs.tf_var_file_path }}"
+          TF_CMD+=' -var-file="${{ inputs.tf_var_file_path }}"'
+        else
+          echo "Using default terraform variables"
+        fi
+        if [ -n "${{ inputs.tf_var_args }}" ]; then
+          echo "using extra terraform variable arguments"
+          TF_CMD+=" ${{ inputs.tf_var_args }}"
+        fi
+        ${TF_CMD} 2>&1 | tee tf_plan.log
+        exit_code=$?
+        {
+          echo 'tf_plan_output<<EOF'
+          cat tf_plan.log
+          echo EOF
+        } >> "$GITHUB_OUTPUT"
+        if [[ $exit_code -ne 0 ]]; then
+          exit $exit_code
+        fi
+      shell: bash
+      id: plan
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Find Comment
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: peter-evans/find-comment@v3
+      id: fc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Terraform Plan
+
+    - name: Post Custom Terrascan Output as Comment
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          #### Terraform Plan 📖
+
+          <details><summary>Show Plan</summary>
+
+          ```
+          Terraform plan output
+          ${{ steps.plan.outputs.tf_plan_output }}
+          ```
+
+          </details>
+
+          *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*
+        edit-mode: replace
+
+    - name: Get githubapp access token
+      if: ${{ inputs.approvers != '' }}
+      id: ghapp_access_token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ inputs.gh_app_id }}
+        private-key: ${{ inputs.gh_app_private_key }}
+        owner: ${{ github.repository_owner }}
+    
+    - name: Manual Approval
+      if: ${{ inputs.approvers != '' }}
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ steps.ghapp_access_token.outputs.token }}
+        approvers: ${{ inputs.approvers }}
+        minimum-approvals: 1
+        issue-title: "Destrying Infrastructure"
+        issue-body: |
+          ⚠️ **Please carefully review the destroy plan and approve if everything looks good.**
+
+          <details><summary>Show Destroy Plan</summary>
+
+          ```
+          Terraform destroy plan output
+          ${{ steps.plan.outputs.tf_plan_output }}
+          ```
+
+          </details>
+
+          *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*
+        exclude-workflow-initiator-as-approver: false
+        additional-approved-words: ''
+        additional-denied-words: ''
+        timeout-minutes: 10
+
+    - name: Upload Terraform plan output
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan_output_file.json
+        path: ${{ inputs.working_directory }}/tfplan_output_file.json

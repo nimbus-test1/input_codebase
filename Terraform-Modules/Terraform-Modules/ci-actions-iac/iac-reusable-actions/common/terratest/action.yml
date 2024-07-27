@@ -1,0 +1,41 @@
+# action.yaml
+name: Terratest
+description: Terratest
+inputs:
+  gcp_access_token:
+    required: false
+    description: "GCP Access Token"
+  credentials_file_path:
+    required: false
+    description: "GCP Credentials File Path"
+  tf_state_gcs_bucket_name:
+    required: true
+    description: "TF State Bucket Name"
+  tf_state_file_key_name:
+    required: true
+    description: "TF State File"
+  test_dir:
+    required: true
+    description: "Test directory"
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Terratest
+      run: |
+        cd ${{ inputs.test_dir }}
+        echo "Running Terratest under $(pwd)"
+        go mod init gcs
+        go mod tidy > /dev/null 2>&1
+        go test -v -timeout 30m
+      shell: bash
+      env:
+        GOOGLE_OAUTH_ACCESS_TOKEN: ${{ inputs.gcp_access_token }}
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ inputs.credentials_file_path }}
+
+    - name: Terratest Cleanup
+      if: always()
+      run: |
+        gsutil ls gs://${{ inputs.tf_state_gcs_bucket_name }}
+        gsutil rm -r gs://${{ inputs.tf_state_gcs_bucket_name }}/${{ inputs.tf_state_file_key_name }}
+      shell: bash

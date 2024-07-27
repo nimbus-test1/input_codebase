@@ -1,0 +1,48 @@
+# action.yaml
+name: Terratest
+description: Terratest
+inputs:
+  tf_state_s3_bucket_name:
+    required: true
+    description: "S3 Bucket Name"
+  tf_state_lock_dd_table_name:
+    required: true
+    description: "DB Table Name"
+  tf_state_file_key_name:
+    required: true
+    description: "State File  Name"
+  iam_role_to_assume:
+    required: true
+    description: "IAM Role"
+  region:
+    required: true
+    description: "Region Name"
+  test_directory:
+    required: true
+    description: "Test Directory"
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Terratest
+      run: |
+        cd ${{ inputs.test_directory }}
+        echo "Running Terratest under $(pwd)"
+        go mod init s3
+        go mod tidy > /dev/null 2>&1
+        go test -v -timeout 60m
+      shell: bash
+      env:
+        tf_state_s3_bucket_name: ${{ inputs.tf_state_s3_bucket_name }}
+        tf_state_file_key_name: ${{ inputs.tf_state_file_key_name }}
+        tf_state_lock_dd_table_name: ${{ inputs.tf_state_lock_dd_table_name }}
+        iam_role_to_assume: ${{ inputs.iam_role_to_assume }}
+        region: ${{ inputs.region }}
+        test_directory: ${{ inputs.test_directory }}
+    
+    - name: Terratest Cleanup
+      if: always()
+      run: |
+        aws s3api head-bucket --bucket ${{ inputs.tf_state_s3_bucket_name }}
+        aws s3 rm s3://${{ inputs.tf_state_s3_bucket_name }}/${{ inputs.tf_state_file_key_name }}
+      shell: bash

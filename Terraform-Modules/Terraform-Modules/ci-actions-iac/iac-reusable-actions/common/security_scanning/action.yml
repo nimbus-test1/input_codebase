@@ -1,0 +1,405 @@
+# action.yaml
+name: Terraform Validate and Scan
+description: Terraform Validate
+inputs:
+
+  working_directory:
+    required: true
+    description: "Working directory of root terraform module"
+  terrascan_custom_policy_enable:
+    required: false
+    description: "If terrascan custom policy is enabled"
+    default: 'false'
+  terrascan_custom_policy_path:
+    required: false
+    description: "Terrascan custom policy path"
+  terrascan_policy_skip:
+    required: false
+    description: "List of comma separated terrascan policy to skip"
+    default: ""
+  legacy_tf_skip_checks:
+    description: 'Skip legacy Terraform checks for Infra repos'
+    required: false
+    default: 'false'
+  severity_to_report:
+    required: false
+    description: "Severity to report"
+    default: "MEDIUM"
+  provider:
+    required: true
+    description: "Provider to scan"
+  gh_app_id:
+    required: false
+    description: "Github App ID"
+  gh_app_private_key:
+    required: false
+    description: "Github App Private Key"
+  required_opa_check:
+    required: false
+    description: "If OPA check is required"
+    default: 'true'
+  tf_var_args:
+    required: false
+    description: "one or more -var='foo=bar' arguments"
+  bypass_violation:
+    description: To skip Terrascan Failures
+    required: false
+    default: 'false'
+  terraform_version:
+    description: To skip Terrascan variables
+    required: false
+    default: '1.7.5'
+
+outputs:
+  json_file_list:
+    description: "List of json files to be uploaded to datadog"
+    value: ${{ steps.set_output_variables.outputs.json_file_list }}
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: print terraform version
+      run: terraform version
+      shell: bash
+
+    - name: Terraform Validate for 0.11.15
+      if: ${{ inputs.terraform_version == '0.11.15' }}
+      run: | 
+        terraform validate -check-variables=false
+        terraform version
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+    - name: Terraform Validate for not 0.11.15
+      if: ${{ inputs.terraform_version != '0.11.15' }}
+      run: terraform validate
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}  
+
+    - name: Terraform fmt
+      continue-on-error: ${{ inputs.legacy_tf_skip_checks == 'true' }}
+      run: terraform fmt -check
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Setup TFLint
+      continue-on-error: ${{ inputs.legacy_tf_skip_checks == 'true' }}
+      uses: terraform-linters/setup-tflint@v4
+      with:
+        tflint_version: v0.48.0
+
+    - name: Terraform lint
+      continue-on-error: ${{ inputs.legacy_tf_skip_checks == 'true' }}
+      run: |
+        CMD="tflint -f compact"
+        if [ -n "${{ inputs.tf_var_args }}" ]; then
+          echo "using extra terraform variable arguments"
+          CMD+=" ${{ inputs.tf_var_args }}"
+        fi
+        sh -c "${CMD}"
+
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Set up env and output variables
+      id: set_output_variables
+      run: |
+        TERRASCAN_DEFAULT_FILE=terrascan_default_scan.json
+        TERRASCAN_CUSTOM_FILE=terrascan_custom_scan.json
+        OPA_FILE=opa_results.json
+
+        json_file_list="${{inputs.working_directory}}/$TERRASCAN_DEFAULT_FILE ${{inputs.working_directory}}/$TERRASCAN_CUSTOM_FILE $OPA_FILE"
+        echo "$json_file_list"
+        echo "json_file_list=$json_file_list" >> $GITHUB_OUTPUT
+        
+        echo "TERRASCAN_DEFAULT_FILE=$TERRASCAN_DEFAULT_FILE" >> $GITHUB_ENV
+        echo "TERRASCAN_CUSTOM_FILE=$TERRASCAN_CUSTOM_FILE" >> $GITHUB_ENV
+        echo "OPA_FILE=$OPA_FILE" >> $GITHUB_ENV
+      shell: bash
+    
+    - name: Scan Terraform
+      run: |
+        curl -L "$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Linux_x86_64.tar.gz")" > terrascan.tar.gz
+        tar -xf terrascan.tar.gz terrascan && rm terrascan.tar.gz
+        install terrascan /usr/local/bin && rm terrascan
+      shell: bash
+    
+    - name: print terrascan version
+      run: terrascan version
+      shell: bash
+
+    - name: Get githubapp access token
+      if: inputs.terrascan_custom_policy_enable == 'true'
+      id: ghapp_access_token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ inputs.gh_app_id }}
+        private-key: ${{ inputs.gh_app_private_key }}
+        owner: test-org
+
+    - name: Checkout tools repo
+      if: inputs.terrascan_custom_policy_enable == 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: test-org/ci-actions-iac
+        ref: v0
+        sparse-checkout: |
+          ${{ inputs.terrascan_custom_policy_path }}
+        path: "custom_policy"
+        token: ${{ steps.ghapp_access_token.outputs.token }}
+
+    - name: List all files
+      if: inputs.terrascan_custom_policy_enable == 'true' 
+      run: |
+        ## echo gihub workspace
+        terrascan init
+        echo $GITHUB_WORKSPACE
+        echo "list all"
+        ls -la 
+        echo "list all policy"
+        ls -ls $GITHUB_WORKSPACE
+        echo "only aws policy - ls $GITHUB_WORKSPACE/custom_policy/terrascan_custom_policy"
+        ls -ls $GITHUB_WORKSPACE/custom_policy
+      shell: bash
+    
+    - name: Terrascan - Default rule
+      run: |
+        echo "Executing terrascan with default settings"
+        echo "Policy to Skip: ${{ inputs.terrascan_policy_skip }} , Severity is set to: ${{ inputs.severity_to_report }}"
+        echo "Executing command - \"terrascan scan -t ${{ inputs.provider }} -i terraform --skip-rules=${{ inputs.terrascan_policy_skip }} --severity=${{ inputs.severity_to_report }} -v -o json\" "
+        echo "Generate JSON Formatted Log for Terrascan Default Scan for Datadog"
+        set +e
+        terrascan scan -t ${{ inputs.provider }} -i terraform --skip-rules=${{ inputs.terrascan_policy_skip }} --severity=${{ inputs.severity_to_report }} -v -o json 2>/dev/null | tee ${{ env.TERRASCAN_DEFAULT_FILE }}
+        exit_code=$?        
+        if [[ "${{ inputs.bypass_violation }}" == "true" ]]; then
+           echo "Skipping Terrascan failure check due to bypass_violation flag."
+        else
+           set -e
+           if [[ $exit_code -ne 4 ]]; then
+               exit $exit_code
+           fi
+        fi
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Terrascan - Custom rule
+      if: inputs.terrascan_custom_policy_enable == 'true'
+      run: |
+        echo "Custom policy is enabled"
+        echo "Policy to Skip: ${{ inputs.terrascan_policy_skip }} , Severity is set to: ${{ inputs.severity_to_report }}"
+        echo "Executing command - \"terrascan scan -t ${{ inputs.provider }} -i terraform --skip-rules=${{ inputs.terrascan_policy_skip }} --severity=${{ inputs.severity_to_report }} -p $GITHUB_WORKSPACE/custom_policy/${{ inputs.terrascan_custom_policy_path }} -v\" "
+        echo "Generate JSON Formatted Log for Terrascan Custom Scan for Datadog"
+        terrascan scan -t ${{ inputs.provider }} -i terraform --skip-rules=${{ inputs.terrascan_policy_skip }} --severity=${{ inputs.severity_to_report }} -p $GITHUB_WORKSPACE/custom_policy/${{ inputs.terrascan_custom_policy_path }} -v -o json 2>/dev/null | tee ${{ env.TERRASCAN_CUSTOM_FILE }} 
+        exit_code=$?
+        if [[ "${{ inputs.bypass_violation }}" == "true" ]]; then
+           echo "Skipping Terrascan failure check due to bypass_violation flag."
+        else
+           set -e
+           if [[ $exit_code -ne 4 ]]; then
+               exit $exit_code
+           fi
+        fi
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Parse Default Terrascan Output
+      id: parse-terrascan
+      run: |
+        # pwd
+        # ls -la
+        # cat ${{ env.TERRASCAN_DEFAULT_FILE }}
+        scanned_at=$(jq -r '.results.scan_summary.scanned_at' ${{ env.TERRASCAN_DEFAULT_FILE }})
+        policies_validated=$(jq -r '.results.scan_summary.policies_validated' ${{ env.TERRASCAN_DEFAULT_FILE }})
+        violated_policies=$(jq -r '.results.scan_summary.violated_policies' ${{ env.TERRASCAN_DEFAULT_FILE }})
+        low=$(jq -r '.results.scan_summary.low' ${{ env.TERRASCAN_DEFAULT_FILE }})
+        medium=$(jq -r '.results.scan_summary.medium' ${{ env.TERRASCAN_DEFAULT_FILE }})
+        high=$(jq -r '.results.scan_summary.high' ${{ env.TERRASCAN_DEFAULT_FILE }})
+
+        if [[ $violated_policies -gt 0 ]]; then
+          echo "Violated Policies: $violated_policies"
+          comment=$(cat << EOF
+          **Terraform default scan output - ❌ Violations found**
+
+              Scanned At          : $scanned_at
+              Policies Validated  : $policies_validated
+              Violated Policies   : $violated_policies
+              Low                 : $low
+              Medium              : $medium
+              High                : $high
+        EOF
+          )
+        else
+          echo "No Violated Policies"
+          comment=$(cat << EOF
+          **Terraform default scan output - ✅ No violations found**
+
+              Scanned At          : $scanned_at
+              Policies Validated  : $policies_validated
+              Violated Policies   : $violated_policies
+              Low                 : $low
+              Medium              : $medium
+              High                : $high
+        EOF
+          )
+        fi
+
+        echo "comment<<EOF" >> $GITHUB_ENV
+        echo -e "$comment" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Find Comment
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: peter-evans/find-comment@v3
+      id: fc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Terraform default scan output
+
+    - name: Post Terrascan Output as Comment
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: ${{ env.comment }}
+        edit-mode: replace
+
+    - name: Parse Custom Terrascan Output
+      id: parse-custom-terrascan
+      if: github.event_name == 'pull_request' && inputs.terrascan_custom_policy_enable == 'true'
+      run: |
+        scanned_at=$(jq -r '.results.scan_summary.scanned_at' ${{ env.TERRASCAN_CUSTOM_FILE }})
+        policies_validated=$(jq -r '.results.scan_summary.policies_validated' ${{ env.TERRASCAN_CUSTOM_FILE }})
+        violated_policies=$(jq -r '.results.scan_summary.violated_policies' ${{ env.TERRASCAN_CUSTOM_FILE }})
+        low=$(jq -r '.results.scan_summary.low' ${{ env.TERRASCAN_CUSTOM_FILE }})
+        medium=$(jq -r '.results.scan_summary.medium' ${{ env.TERRASCAN_CUSTOM_FILE }})
+        high=$(jq -r '.results.scan_summary.high' ${{ env.TERRASCAN_CUSTOM_FILE }})
+
+        if [[ $violated_policies -gt 0 ]]; then
+          echo "Violated Policies: $violated_policies"
+          comment=$(cat << EOF
+          **Terraform custom scan output - ❌ Violations found**
+
+              Scanned At          : $scanned_at
+              Policies Validated  : $policies_validated
+              Violated Policies   : $violated_policies
+              Low                 : $low
+              Medium              : $medium
+              High                : $high
+        EOF
+          )
+        else
+          echo "No Violated Policies"
+          comment=$(cat << EOF
+          **Terraform custom scan output - ✅ No violations found**
+
+              Scanned At          : $scanned_at
+              Policies Validated  : $policies_validated
+              Violated Policies   : $violated_policies
+              Low                 : $low
+              Medium              : $medium
+              High                : $high
+        EOF
+          )
+        fi
+
+        echo "custom_comment<<EOF" >> $GITHUB_ENV
+        echo -e "$comment" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Find Comment
+      if: github.event_name == 'pull_request' && inputs.terrascan_custom_policy_enable == 'true'
+      uses: peter-evans/find-comment@v3
+      id: fcc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Terraform custom scan output
+
+    - name: Post Custom Terrascan Output as Comment
+      if: github.event_name == 'pull_request' && inputs.terrascan_custom_policy_enable == 'true'
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ steps.fcc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: ${{ env.custom_comment }}
+        edit-mode: replace
+
+    - name: Terraform Plan
+      if : inputs.required_opa_check == 'true'
+      run: |
+        terraform plan --out tfplan.binary
+        terraform show -json tfplan.binary > tfplan_output_file.json
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Call OPA test
+      continue-on-error: true
+      if : inputs.required_opa_check == 'true'
+      id: opa_test
+      uses: test-org/ci-actions-iac/iac-reusable-actions/common/opa@v0
+      with:
+        tfplan-file-path: ${{ inputs.working_directory }}/tfplan_output_file.json
+
+    - name: Parse OPA Output
+      if : github.event_name == 'pull_request' && inputs.required_opa_check == 'true'
+      id: parse-opa
+      run: |
+        if [[ ${{ env.opa_exit_code }} -ne 1 ]]; then
+          echo "No OPA critical violations found"
+          comment=$(cat << EOF
+          **OPA scan output - ✅ No violations found**
+        EOF
+          )
+        else
+          echo "OPA violations found"
+          comment=$(cat << EOF
+          **OPA scan output - ❌ Violations found**
+              
+          \`\`\`
+          Violations:
+          $(echo "${{ env.opa_errors }}" | sed 's/^/    /')
+          \`\`\`
+        EOF
+          )
+        fi
+    
+        echo "opa_comment<<EOF" >> $GITHUB_ENV
+        echo -e "$comment" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Find Comment
+      if: github.event_name == 'pull_request' && inputs.required_opa_check == 'true'
+      uses: peter-evans/find-comment@v3
+      id: foc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: OPA scan output
+
+    - name: Post OPA scan Output as Comment
+      if: github.event_name == 'pull_request' && inputs.required_opa_check == 'true'
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ steps.foc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: ${{ env.opa_comment }}
+        edit-mode: replace
+
+    - name: Act on OPA exit status
+      if: inputs.required_opa_check == 'true' 
+      run: |
+        if [[ -n "${{ env.opa_exit_code }}" ]]; then
+          exit ${{ env.opa_exit_code }}
+        else
+          echo "opa_exit_code is not set or empty"
+        fi
+      shell: bash
+

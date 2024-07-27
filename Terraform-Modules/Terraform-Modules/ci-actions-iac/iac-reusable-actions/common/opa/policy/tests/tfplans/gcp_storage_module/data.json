@@ -1,0 +1,2551 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.7.5",
+  "variables": {
+    "autoclass": {
+      "value": {
+        "bucket1": false,
+        "bucket2": false,
+        "bucket3": false
+      }
+    },
+    "bucket_lifecycle_rules": {
+      "value": {
+        "bucket1": [
+          {
+            "action": {
+              "type": "Delete"
+            },
+            "condition": {
+              "age": "90"
+            }
+          }
+        ]
+      }
+    },
+    "folders": {
+      "value": {
+        "bucket1": [
+          "dev",
+          "prod"
+        ],
+        "bucket2": [
+          "test",
+          "test2"
+        ]
+      }
+    },
+    "labels": {
+      "value": {
+        "gbl": "1234567890"
+      }
+    },
+    "lifecycle_rules": {
+      "value": [
+        {
+          "action": {
+            "storage_class": "NEARLINE",
+            "type": "SetStorageClass"
+          },
+          "condition": {
+            "age": "10",
+            "matches_storage_class": "STANDARD,DURABLE_REDUCED_AVAILABILITY"
+          }
+        }
+      ]
+    },
+    "location": {
+      "value": "us-central1"
+    },
+    "names": {
+      "value": [
+        "bucket1",
+        "bucket2",
+        "bucket3"
+      ]
+    },
+    "prefix": {
+      "value": "test-sandbox"
+    },
+    "project_id": {
+      "value": "test-test2-nf5u"
+    },
+    "randomize_suffix": {
+      "value": true
+    }
+  },
+  "planned_values": {
+    "outputs": {
+      "names": {
+        "sensitive": false
+      },
+      "names_list": {
+        "sensitive": false
+      },
+      "project_id": {
+        "sensitive": false,
+        "type": "string",
+        "value": "test-test2-nf5u"
+      }
+    },
+    "root_module": {
+      "child_modules": [
+        {
+          "resources": [
+            {
+              "address": "module.cloud_storage.random_string.prefix",
+              "mode": "managed",
+              "type": "random_string",
+              "name": "prefix",
+              "provider_name": "registry.terraform.io/hashicorp/random",
+              "schema_version": 2,
+              "values": {
+                "keepers": null,
+                "length": 4,
+                "lower": true,
+                "min_lower": 0,
+                "min_numeric": 0,
+                "min_special": 0,
+                "min_upper": 0,
+                "number": true,
+                "numeric": true,
+                "override_special": null,
+                "special": false,
+                "upper": false
+              },
+              "sensitive_values": {}
+            }
+          ],
+          "address": "module.cloud_storage",
+          "child_modules": [
+            {
+              "resources": [
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets[\"bucket1\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket",
+                  "name": "buckets",
+                  "index": "bucket1",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 1,
+                  "values": {
+                    "autoclass": [
+                      {
+                        "enabled": false
+                      }
+                    ],
+                    "cors": [],
+                    "custom_placement_config": [],
+                    "default_event_based_hold": false,
+                    "effective_labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket1"
+                    },
+                    "enable_object_retention": null,
+                    "encryption": [],
+                    "force_destroy": false,
+                    "labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket1"
+                    },
+                    "lifecycle_rule": [
+                      {
+                        "action": [
+                          {
+                            "storage_class": "NEARLINE",
+                            "type": "SetStorageClass"
+                          }
+                        ],
+                        "condition": [
+                          {
+                            "age": 10,
+                            "created_before": "",
+                            "custom_time_before": "",
+                            "days_since_custom_time": null,
+                            "days_since_noncurrent_time": null,
+                            "matches_prefix": [],
+                            "matches_storage_class": [
+                              "STANDARD",
+                              "DURABLE_REDUCED_AVAILABILITY"
+                            ],
+                            "matches_suffix": [],
+                            "no_age": null,
+                            "noncurrent_time_before": "",
+                            "num_newer_versions": null
+                          }
+                        ]
+                      },
+                      {
+                        "action": [
+                          {
+                            "storage_class": "",
+                            "type": "Delete"
+                          }
+                        ],
+                        "condition": [
+                          {
+                            "age": 90,
+                            "created_before": "",
+                            "custom_time_before": "",
+                            "days_since_custom_time": null,
+                            "days_since_noncurrent_time": null,
+                            "matches_prefix": [],
+                            "matches_storage_class": [],
+                            "matches_suffix": [],
+                            "no_age": null,
+                            "noncurrent_time_before": "",
+                            "num_newer_versions": null
+                          }
+                        ]
+                      }
+                    ],
+                    "location": "US-CENTRAL1",
+                    "logging": [],
+                    "project": "test-test2-nf5u",
+                    "public_access_prevention": "inherited",
+                    "requester_pays": null,
+                    "retention_policy": [],
+                    "storage_class": "STANDARD",
+                    "terraform_labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket1"
+                    },
+                    "timeouts": null,
+                    "uniform_bucket_level_access": true,
+                    "versioning": [
+                      {
+                        "enabled": false
+                      }
+                    ]
+                  },
+                  "sensitive_values": {
+                    "autoclass": [
+                      {}
+                    ],
+                    "cors": [],
+                    "custom_placement_config": [],
+                    "effective_labels": {},
+                    "encryption": [],
+                    "labels": {},
+                    "lifecycle_rule": [
+                      {
+                        "action": [
+                          {}
+                        ],
+                        "condition": [
+                          {
+                            "matches_prefix": [],
+                            "matches_storage_class": [
+                              false,
+                              false
+                            ],
+                            "matches_suffix": []
+                          }
+                        ]
+                      },
+                      {
+                        "action": [
+                          {}
+                        ],
+                        "condition": [
+                          {
+                            "matches_prefix": [],
+                            "matches_storage_class": [],
+                            "matches_suffix": []
+                          }
+                        ]
+                      }
+                    ],
+                    "logging": [],
+                    "retention_policy": [],
+                    "terraform_labels": {},
+                    "versioning": [
+                      {}
+                    ],
+                    "website": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets[\"bucket2\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket",
+                  "name": "buckets",
+                  "index": "bucket2",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 1,
+                  "values": {
+                    "autoclass": [
+                      {
+                        "enabled": false
+                      }
+                    ],
+                    "cors": [],
+                    "custom_placement_config": [],
+                    "default_event_based_hold": false,
+                    "effective_labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket2"
+                    },
+                    "enable_object_retention": null,
+                    "encryption": [],
+                    "force_destroy": false,
+                    "labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket2"
+                    },
+                    "lifecycle_rule": [
+                      {
+                        "action": [
+                          {
+                            "storage_class": "NEARLINE",
+                            "type": "SetStorageClass"
+                          }
+                        ],
+                        "condition": [
+                          {
+                            "age": 10,
+                            "created_before": "",
+                            "custom_time_before": "",
+                            "days_since_custom_time": null,
+                            "days_since_noncurrent_time": null,
+                            "matches_prefix": [],
+                            "matches_storage_class": [
+                              "STANDARD",
+                              "DURABLE_REDUCED_AVAILABILITY"
+                            ],
+                            "matches_suffix": [],
+                            "no_age": null,
+                            "noncurrent_time_before": "",
+                            "num_newer_versions": null
+                          }
+                        ]
+                      }
+                    ],
+                    "location": "US-CENTRAL1",
+                    "logging": [],
+                    "project": "test-test2-nf5u",
+                    "public_access_prevention": "inherited",
+                    "requester_pays": null,
+                    "retention_policy": [],
+                    "storage_class": "STANDARD",
+                    "terraform_labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket2"
+                    },
+                    "timeouts": null,
+                    "uniform_bucket_level_access": true,
+                    "versioning": [
+                      {
+                        "enabled": false
+                      }
+                    ]
+                  },
+                  "sensitive_values": {
+                    "autoclass": [
+                      {}
+                    ],
+                    "cors": [],
+                    "custom_placement_config": [],
+                    "effective_labels": {},
+                    "encryption": [],
+                    "labels": {},
+                    "lifecycle_rule": [
+                      {
+                        "action": [
+                          {}
+                        ],
+                        "condition": [
+                          {
+                            "matches_prefix": [],
+                            "matches_storage_class": [
+                              false,
+                              false
+                            ],
+                            "matches_suffix": []
+                          }
+                        ]
+                      }
+                    ],
+                    "logging": [],
+                    "retention_policy": [],
+                    "terraform_labels": {},
+                    "versioning": [
+                      {}
+                    ],
+                    "website": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets[\"bucket3\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket",
+                  "name": "buckets",
+                  "index": "bucket3",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 1,
+                  "values": {
+                    "autoclass": [
+                      {
+                        "enabled": false
+                      }
+                    ],
+                    "cors": [],
+                    "custom_placement_config": [],
+                    "default_event_based_hold": false,
+                    "effective_labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket3"
+                    },
+                    "enable_object_retention": null,
+                    "encryption": [],
+                    "force_destroy": false,
+                    "labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket3"
+                    },
+                    "lifecycle_rule": [
+                      {
+                        "action": [
+                          {
+                            "storage_class": "NEARLINE",
+                            "type": "SetStorageClass"
+                          }
+                        ],
+                        "condition": [
+                          {
+                            "age": 10,
+                            "created_before": "",
+                            "custom_time_before": "",
+                            "days_since_custom_time": null,
+                            "days_since_noncurrent_time": null,
+                            "matches_prefix": [],
+                            "matches_storage_class": [
+                              "STANDARD",
+                              "DURABLE_REDUCED_AVAILABILITY"
+                            ],
+                            "matches_suffix": [],
+                            "no_age": null,
+                            "noncurrent_time_before": "",
+                            "num_newer_versions": null
+                          }
+                        ]
+                      }
+                    ],
+                    "location": "US-CENTRAL1",
+                    "logging": [],
+                    "project": "test-test2-nf5u",
+                    "public_access_prevention": "inherited",
+                    "requester_pays": null,
+                    "retention_policy": [],
+                    "storage_class": "STANDARD",
+                    "terraform_labels": {
+                      "gbl": "1234567890",
+                      "name": "test-sandbox-bucket3"
+                    },
+                    "timeouts": null,
+                    "uniform_bucket_level_access": true,
+                    "versioning": [
+                      {
+                        "enabled": false
+                      }
+                    ]
+                  },
+                  "sensitive_values": {
+                    "autoclass": [
+                      {}
+                    ],
+                    "cors": [],
+                    "custom_placement_config": [],
+                    "effective_labels": {},
+                    "encryption": [],
+                    "labels": {},
+                    "lifecycle_rule": [
+                      {
+                        "action": [
+                          {}
+                        ],
+                        "condition": [
+                          {
+                            "matches_prefix": [],
+                            "matches_storage_class": [
+                              false,
+                              false
+                            ],
+                            "matches_suffix": []
+                          }
+                        ]
+                      }
+                    ],
+                    "logging": [],
+                    "retention_policy": [],
+                    "terraform_labels": {},
+                    "versioning": [
+                      {}
+                    ],
+                    "website": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket1_dev\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket_object",
+                  "name": "folders",
+                  "index": "bucket1_dev",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 0,
+                  "values": {
+                    "cache_control": null,
+                    "content": "foo",
+                    "content_disposition": null,
+                    "content_encoding": null,
+                    "content_language": null,
+                    "customer_encryption": [],
+                    "detect_md5hash": "different hash",
+                    "event_based_hold": null,
+                    "metadata": null,
+                    "name": "dev/",
+                    "retention": [],
+                    "source": null,
+                    "temporary_hold": null,
+                    "timeouts": null
+                  },
+                  "sensitive_values": {
+                    "customer_encryption": [],
+                    "retention": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket1_prod\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket_object",
+                  "name": "folders",
+                  "index": "bucket1_prod",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 0,
+                  "values": {
+                    "cache_control": null,
+                    "content": "foo",
+                    "content_disposition": null,
+                    "content_encoding": null,
+                    "content_language": null,
+                    "customer_encryption": [],
+                    "detect_md5hash": "different hash",
+                    "event_based_hold": null,
+                    "metadata": null,
+                    "name": "prod/",
+                    "retention": [],
+                    "source": null,
+                    "temporary_hold": null,
+                    "timeouts": null
+                  },
+                  "sensitive_values": {
+                    "customer_encryption": [],
+                    "retention": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket2_test\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket_object",
+                  "name": "folders",
+                  "index": "bucket2_test",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 0,
+                  "values": {
+                    "cache_control": null,
+                    "content": "foo",
+                    "content_disposition": null,
+                    "content_encoding": null,
+                    "content_language": null,
+                    "customer_encryption": [],
+                    "detect_md5hash": "different hash",
+                    "event_based_hold": null,
+                    "metadata": null,
+                    "name": "test/",
+                    "retention": [],
+                    "source": null,
+                    "temporary_hold": null,
+                    "timeouts": null
+                  },
+                  "sensitive_values": {
+                    "customer_encryption": [],
+                    "retention": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket2_test2\"]",
+                  "mode": "managed",
+                  "type": "google_storage_bucket_object",
+                  "name": "folders",
+                  "index": "bucket2_test2",
+                  "provider_name": "registry.terraform.io/hashicorp/google",
+                  "schema_version": 0,
+                  "values": {
+                    "cache_control": null,
+                    "content": "foo",
+                    "content_disposition": null,
+                    "content_encoding": null,
+                    "content_language": null,
+                    "customer_encryption": [],
+                    "detect_md5hash": "different hash",
+                    "event_based_hold": null,
+                    "metadata": null,
+                    "name": "test2/",
+                    "retention": [],
+                    "source": null,
+                    "temporary_hold": null,
+                    "timeouts": null
+                  },
+                  "sensitive_values": {
+                    "customer_encryption": [],
+                    "retention": []
+                  }
+                },
+                {
+                  "address": "module.cloud_storage.module.cloud_storage.random_id.bucket_suffix[0]",
+                  "mode": "managed",
+                  "type": "random_id",
+                  "name": "bucket_suffix",
+                  "index": 0,
+                  "provider_name": "registry.terraform.io/hashicorp/random",
+                  "schema_version": 0,
+                  "values": {
+                    "byte_length": 2,
+                    "keepers": null,
+                    "prefix": null
+                  },
+                  "sensitive_values": {}
+                }
+              ],
+              "address": "module.cloud_storage.module.cloud_storage"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "module.cloud_storage.random_string.prefix",
+      "module_address": "module.cloud_storage",
+      "mode": "managed",
+      "type": "random_string",
+      "name": "prefix",
+      "provider_name": "registry.terraform.io/hashicorp/random",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "keepers": null,
+          "length": 4,
+          "lower": true,
+          "min_lower": 0,
+          "min_numeric": 0,
+          "min_special": 0,
+          "min_upper": 0,
+          "number": true,
+          "numeric": true,
+          "override_special": null,
+          "special": false,
+          "upper": false
+        },
+        "after_unknown": {
+          "id": true,
+          "result": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets[\"bucket1\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "buckets",
+      "index": "bucket1",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "autoclass": [
+            {
+              "enabled": false
+            }
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "default_event_based_hold": false,
+          "effective_labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket1"
+          },
+          "enable_object_retention": null,
+          "encryption": [],
+          "force_destroy": false,
+          "labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket1"
+          },
+          "lifecycle_rule": [
+            {
+              "action": [
+                {
+                  "storage_class": "NEARLINE",
+                  "type": "SetStorageClass"
+                }
+              ],
+              "condition": [
+                {
+                  "age": 10,
+                  "created_before": "",
+                  "custom_time_before": "",
+                  "days_since_custom_time": null,
+                  "days_since_noncurrent_time": null,
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    "STANDARD",
+                    "DURABLE_REDUCED_AVAILABILITY"
+                  ],
+                  "matches_suffix": [],
+                  "no_age": null,
+                  "noncurrent_time_before": "",
+                  "num_newer_versions": null
+                }
+              ]
+            },
+            {
+              "action": [
+                {
+                  "storage_class": "",
+                  "type": "Delete"
+                }
+              ],
+              "condition": [
+                {
+                  "age": 90,
+                  "created_before": "",
+                  "custom_time_before": "",
+                  "days_since_custom_time": null,
+                  "days_since_noncurrent_time": null,
+                  "matches_prefix": [],
+                  "matches_storage_class": [],
+                  "matches_suffix": [],
+                  "no_age": null,
+                  "noncurrent_time_before": "",
+                  "num_newer_versions": null
+                }
+              ]
+            }
+          ],
+          "location": "US-CENTRAL1",
+          "logging": [],
+          "project": "test-test2-nf5u",
+          "public_access_prevention": "inherited",
+          "requester_pays": null,
+          "retention_policy": [],
+          "storage_class": "STANDARD",
+          "terraform_labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket1"
+          },
+          "timeouts": null,
+          "uniform_bucket_level_access": true,
+          "versioning": [
+            {
+              "enabled": false
+            }
+          ]
+        },
+        "after_unknown": {
+          "autoclass": [
+            {
+              "terminal_storage_class": true
+            }
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "effective_labels": {},
+          "encryption": [],
+          "id": true,
+          "labels": {},
+          "lifecycle_rule": [
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    false,
+                    false
+                  ],
+                  "matches_suffix": [],
+                  "with_state": true
+                }
+              ]
+            },
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [],
+                  "matches_suffix": [],
+                  "with_state": true
+                }
+              ]
+            }
+          ],
+          "logging": [],
+          "name": true,
+          "retention_policy": [],
+          "rpo": true,
+          "self_link": true,
+          "terraform_labels": {},
+          "url": true,
+          "versioning": [
+            {}
+          ],
+          "website": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "autoclass": [
+            {}
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "effective_labels": {},
+          "encryption": [],
+          "labels": {},
+          "lifecycle_rule": [
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    false,
+                    false
+                  ],
+                  "matches_suffix": []
+                }
+              ]
+            },
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [],
+                  "matches_suffix": []
+                }
+              ]
+            }
+          ],
+          "logging": [],
+          "retention_policy": [],
+          "terraform_labels": {},
+          "versioning": [
+            {}
+          ],
+          "website": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets[\"bucket2\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "buckets",
+      "index": "bucket2",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "autoclass": [
+            {
+              "enabled": false
+            }
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "default_event_based_hold": false,
+          "effective_labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket2"
+          },
+          "enable_object_retention": null,
+          "encryption": [],
+          "force_destroy": false,
+          "labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket2"
+          },
+          "lifecycle_rule": [
+            {
+              "action": [
+                {
+                  "storage_class": "NEARLINE",
+                  "type": "SetStorageClass"
+                }
+              ],
+              "condition": [
+                {
+                  "age": 10,
+                  "created_before": "",
+                  "custom_time_before": "",
+                  "days_since_custom_time": null,
+                  "days_since_noncurrent_time": null,
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    "STANDARD",
+                    "DURABLE_REDUCED_AVAILABILITY"
+                  ],
+                  "matches_suffix": [],
+                  "no_age": null,
+                  "noncurrent_time_before": "",
+                  "num_newer_versions": null
+                }
+              ]
+            }
+          ],
+          "location": "US-CENTRAL1",
+          "logging": [],
+          "project": "test-test2-nf5u",
+          "public_access_prevention": "inherited",
+          "requester_pays": null,
+          "retention_policy": [],
+          "storage_class": "STANDARD",
+          "terraform_labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket2"
+          },
+          "timeouts": null,
+          "uniform_bucket_level_access": true,
+          "versioning": [
+            {
+              "enabled": false
+            }
+          ]
+        },
+        "after_unknown": {
+          "autoclass": [
+            {
+              "terminal_storage_class": true
+            }
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "effective_labels": {},
+          "encryption": [],
+          "id": true,
+          "labels": {},
+          "lifecycle_rule": [
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    false,
+                    false
+                  ],
+                  "matches_suffix": [],
+                  "with_state": true
+                }
+              ]
+            }
+          ],
+          "logging": [],
+          "name": true,
+          "retention_policy": [],
+          "rpo": true,
+          "self_link": true,
+          "terraform_labels": {},
+          "url": true,
+          "versioning": [
+            {}
+          ],
+          "website": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "autoclass": [
+            {}
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "effective_labels": {},
+          "encryption": [],
+          "labels": {},
+          "lifecycle_rule": [
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    false,
+                    false
+                  ],
+                  "matches_suffix": []
+                }
+              ]
+            }
+          ],
+          "logging": [],
+          "retention_policy": [],
+          "terraform_labels": {},
+          "versioning": [
+            {}
+          ],
+          "website": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets[\"bucket3\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "buckets",
+      "index": "bucket3",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "autoclass": [
+            {
+              "enabled": false
+            }
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "default_event_based_hold": false,
+          "effective_labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket3"
+          },
+          "enable_object_retention": null,
+          "encryption": [],
+          "force_destroy": false,
+          "labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket3"
+          },
+          "lifecycle_rule": [
+            {
+              "action": [
+                {
+                  "storage_class": "NEARLINE",
+                  "type": "SetStorageClass"
+                }
+              ],
+              "condition": [
+                {
+                  "age": 10,
+                  "created_before": "",
+                  "custom_time_before": "",
+                  "days_since_custom_time": null,
+                  "days_since_noncurrent_time": null,
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    "STANDARD",
+                    "DURABLE_REDUCED_AVAILABILITY"
+                  ],
+                  "matches_suffix": [],
+                  "no_age": null,
+                  "noncurrent_time_before": "",
+                  "num_newer_versions": null
+                }
+              ]
+            }
+          ],
+          "location": "US-CENTRAL1",
+          "logging": [],
+          "project": "test-test2-nf5u",
+          "public_access_prevention": "inherited",
+          "requester_pays": null,
+          "retention_policy": [],
+          "storage_class": "STANDARD",
+          "terraform_labels": {
+            "gbl": "1234567890",
+            "name": "test-sandbox-bucket3"
+          },
+          "timeouts": null,
+          "uniform_bucket_level_access": true,
+          "versioning": [
+            {
+              "enabled": false
+            }
+          ]
+        },
+        "after_unknown": {
+          "autoclass": [
+            {
+              "terminal_storage_class": true
+            }
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "effective_labels": {},
+          "encryption": [],
+          "id": true,
+          "labels": {},
+          "lifecycle_rule": [
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    false,
+                    false
+                  ],
+                  "matches_suffix": [],
+                  "with_state": true
+                }
+              ]
+            }
+          ],
+          "logging": [],
+          "name": true,
+          "retention_policy": [],
+          "rpo": true,
+          "self_link": true,
+          "terraform_labels": {},
+          "url": true,
+          "versioning": [
+            {}
+          ],
+          "website": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "autoclass": [
+            {}
+          ],
+          "cors": [],
+          "custom_placement_config": [],
+          "effective_labels": {},
+          "encryption": [],
+          "labels": {},
+          "lifecycle_rule": [
+            {
+              "action": [
+                {}
+              ],
+              "condition": [
+                {
+                  "matches_prefix": [],
+                  "matches_storage_class": [
+                    false,
+                    false
+                  ],
+                  "matches_suffix": []
+                }
+              ]
+            }
+          ],
+          "logging": [],
+          "retention_policy": [],
+          "terraform_labels": {},
+          "versioning": [
+            {}
+          ],
+          "website": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket1_dev\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket_object",
+      "name": "folders",
+      "index": "bucket1_dev",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "cache_control": null,
+          "content": "foo",
+          "content_disposition": null,
+          "content_encoding": null,
+          "content_language": null,
+          "customer_encryption": [],
+          "detect_md5hash": "different hash",
+          "event_based_hold": null,
+          "metadata": null,
+          "name": "dev/",
+          "retention": [],
+          "source": null,
+          "temporary_hold": null,
+          "timeouts": null
+        },
+        "after_unknown": {
+          "bucket": true,
+          "content_type": true,
+          "crc32c": true,
+          "customer_encryption": [],
+          "id": true,
+          "kms_key_name": true,
+          "md5hash": true,
+          "media_link": true,
+          "output_name": true,
+          "retention": [],
+          "self_link": true,
+          "storage_class": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "content": true,
+          "customer_encryption": [],
+          "retention": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket1_prod\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket_object",
+      "name": "folders",
+      "index": "bucket1_prod",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "cache_control": null,
+          "content": "foo",
+          "content_disposition": null,
+          "content_encoding": null,
+          "content_language": null,
+          "customer_encryption": [],
+          "detect_md5hash": "different hash",
+          "event_based_hold": null,
+          "metadata": null,
+          "name": "prod/",
+          "retention": [],
+          "source": null,
+          "temporary_hold": null,
+          "timeouts": null
+        },
+        "after_unknown": {
+          "bucket": true,
+          "content_type": true,
+          "crc32c": true,
+          "customer_encryption": [],
+          "id": true,
+          "kms_key_name": true,
+          "md5hash": true,
+          "media_link": true,
+          "output_name": true,
+          "retention": [],
+          "self_link": true,
+          "storage_class": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "content": true,
+          "customer_encryption": [],
+          "retention": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket2_test\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket_object",
+      "name": "folders",
+      "index": "bucket2_test",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "cache_control": null,
+          "content": "foo",
+          "content_disposition": null,
+          "content_encoding": null,
+          "content_language": null,
+          "customer_encryption": [],
+          "detect_md5hash": "different hash",
+          "event_based_hold": null,
+          "metadata": null,
+          "name": "test/",
+          "retention": [],
+          "source": null,
+          "temporary_hold": null,
+          "timeouts": null
+        },
+        "after_unknown": {
+          "bucket": true,
+          "content_type": true,
+          "crc32c": true,
+          "customer_encryption": [],
+          "id": true,
+          "kms_key_name": true,
+          "md5hash": true,
+          "media_link": true,
+          "output_name": true,
+          "retention": [],
+          "self_link": true,
+          "storage_class": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "content": true,
+          "customer_encryption": [],
+          "retention": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.google_storage_bucket_object.folders[\"bucket2_test2\"]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "google_storage_bucket_object",
+      "name": "folders",
+      "index": "bucket2_test2",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "cache_control": null,
+          "content": "foo",
+          "content_disposition": null,
+          "content_encoding": null,
+          "content_language": null,
+          "customer_encryption": [],
+          "detect_md5hash": "different hash",
+          "event_based_hold": null,
+          "metadata": null,
+          "name": "test2/",
+          "retention": [],
+          "source": null,
+          "temporary_hold": null,
+          "timeouts": null
+        },
+        "after_unknown": {
+          "bucket": true,
+          "content_type": true,
+          "crc32c": true,
+          "customer_encryption": [],
+          "id": true,
+          "kms_key_name": true,
+          "md5hash": true,
+          "media_link": true,
+          "output_name": true,
+          "retention": [],
+          "self_link": true,
+          "storage_class": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "content": true,
+          "customer_encryption": [],
+          "retention": []
+        }
+      }
+    },
+    {
+      "address": "module.cloud_storage.module.cloud_storage.random_id.bucket_suffix[0]",
+      "module_address": "module.cloud_storage.module.cloud_storage",
+      "mode": "managed",
+      "type": "random_id",
+      "name": "bucket_suffix",
+      "index": 0,
+      "provider_name": "registry.terraform.io/hashicorp/random",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "byte_length": 2,
+          "keepers": null,
+          "prefix": null
+        },
+        "after_unknown": {
+          "b64_std": true,
+          "b64_url": true,
+          "dec": true,
+          "hex": true,
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    }
+  ],
+  "output_changes": {
+    "names": {
+      "actions": [
+        "create"
+      ],
+      "before": null,
+      "after": {},
+      "after_unknown": {
+        "bucket1": true,
+        "bucket2": true,
+        "bucket3": true
+      },
+      "before_sensitive": false,
+      "after_sensitive": false
+    },
+    "names_list": {
+      "actions": [
+        "create"
+      ],
+      "before": null,
+      "after": [
+        null,
+        null,
+        null
+      ],
+      "after_unknown": [
+        true,
+        true,
+        true
+      ],
+      "before_sensitive": false,
+      "after_sensitive": false
+    },
+    "project_id": {
+      "actions": [
+        "create"
+      ],
+      "before": null,
+      "after": "test-test2-nf5u",
+      "after_unknown": false,
+      "before_sensitive": false,
+      "after_sensitive": false
+    }
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "terraform_version": "1.7.5",
+    "values": {
+      "outputs": {
+        "project_id": {
+          "sensitive": false,
+          "value": "test-test2-nf5u",
+          "type": "string"
+        }
+      },
+      "root_module": {}
+    }
+  },
+  "configuration": {
+    "provider_config": {
+      "google": {
+        "name": "google",
+        "full_name": "registry.terraform.io/hashicorp/google",
+        "version_constraint": "~> 5.21.0"
+      },
+      "module.cloud_storage.module.cloud_storage:google": {
+        "name": "google",
+        "full_name": "registry.terraform.io/hashicorp/google",
+        "version_constraint": ">= 4.46.0, < 6.0.0",
+        "module_address": "module.cloud_storage.module.cloud_storage"
+      },
+      "module.cloud_storage:random": {
+        "name": "random",
+        "full_name": "registry.terraform.io/hashicorp/random",
+        "module_address": "module.cloud_storage"
+      }
+    },
+    "root_module": {
+      "outputs": {
+        "names": {
+          "expression": {
+            "references": [
+              "module.cloud_storage.names",
+              "module.cloud_storage"
+            ]
+          },
+          "description": "Bucket names."
+        },
+        "names_list": {
+          "expression": {
+            "references": [
+              "module.cloud_storage.names_list",
+              "module.cloud_storage"
+            ]
+          },
+          "description": "List of bucket names."
+        },
+        "project_id": {
+          "expression": {
+            "references": [
+              "var.project_id"
+            ]
+          },
+          "description": "The ID of the project in which resources are provisioned."
+        }
+      },
+      "module_calls": {
+        "cloud_storage": {
+          "source": "../../",
+          "expressions": {
+            "autoclass": {
+              "references": [
+                "var.autoclass"
+              ]
+            },
+            "bucket_lifecycle_rules": {
+              "references": [
+                "var.bucket_lifecycle_rules"
+              ]
+            },
+            "folders": {
+              "references": [
+                "var.folders"
+              ]
+            },
+            "labels": {
+              "references": [
+                "var.labels"
+              ]
+            },
+            "lifecycle_rules": {
+              "references": [
+                "var.lifecycle_rules"
+              ]
+            },
+            "location": {
+              "references": [
+                "var.location"
+              ]
+            },
+            "names": {
+              "references": [
+                "var.names"
+              ]
+            },
+            "prefix": {
+              "references": [
+                "var.prefix"
+              ]
+            },
+            "project_id": {
+              "references": [
+                "var.project_id"
+              ]
+            },
+            "randomize_suffix": {
+              "references": [
+                "var.randomize_suffix"
+              ]
+            }
+          },
+          "module": {
+            "outputs": {
+              "bucket": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.bucket",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Bucket resource (for single use)."
+              },
+              "buckets": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.buckets",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Description: Bucket resources as list."
+              },
+              "buckets_map": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.buckets_map",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Description: Bucket resources by name."
+              },
+              "name": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.name",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Description: Bucket name (for single use)."
+              },
+              "names": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.names",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Bucket names."
+              },
+              "names_list": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.names_list",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "List of bucket names."
+              },
+              "url": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.url",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Description: Bucket URL (for single use)."
+              },
+              "urls": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.urls",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "Description: Bucket URLs."
+              },
+              "urls_list": {
+                "expression": {
+                  "references": [
+                    "module.cloud_storage.urls_list",
+                    "module.cloud_storage"
+                  ]
+                },
+                "description": "List of bucket URLs."
+              }
+            },
+            "resources": [
+              {
+                "address": "random_string.prefix",
+                "mode": "managed",
+                "type": "random_string",
+                "name": "prefix",
+                "provider_config_key": "module.cloud_storage:random",
+                "expressions": {
+                  "length": {
+                    "constant_value": 4
+                  },
+                  "special": {
+                    "constant_value": false
+                  },
+                  "upper": {
+                    "constant_value": false
+                  }
+                },
+                "schema_version": 2
+              }
+            ],
+            "module_calls": {
+              "cloud_storage": {
+                "source": "terraform-google-modules/cloud-storage/google",
+                "expressions": {
+                  "admins": {
+                    "references": [
+                      "var.admins"
+                    ]
+                  },
+                  "autoclass": {
+                    "references": [
+                      "var.autoclass"
+                    ]
+                  },
+                  "bucket_admins": {
+                    "references": [
+                      "var.bucket_admins"
+                    ]
+                  },
+                  "bucket_creators": {
+                    "references": [
+                      "var.bucket_creators"
+                    ]
+                  },
+                  "bucket_lifecycle_rules": {
+                    "references": [
+                      "var.bucket_lifecycle_rules"
+                    ]
+                  },
+                  "bucket_policy_only": {
+                    "references": [
+                      "var.names"
+                    ]
+                  },
+                  "bucket_storage_admins": {
+                    "references": [
+                      "var.bucket_storage_admins"
+                    ]
+                  },
+                  "bucket_viewers": {
+                    "references": [
+                      "var.bucket_viewers"
+                    ]
+                  },
+                  "creators": {
+                    "references": [
+                      "var.creators"
+                    ]
+                  },
+                  "encryption_key_names": {
+                    "references": [
+                      "var.encryption_key_names"
+                    ]
+                  },
+                  "folders": {
+                    "references": [
+                      "var.folders"
+                    ]
+                  },
+                  "force_destroy": {
+                    "references": [
+                      "var.names"
+                    ]
+                  },
+                  "labels": {
+                    "references": [
+                      "var.labels"
+                    ]
+                  },
+                  "lifecycle_rules": {
+                    "references": [
+                      "var.lifecycle_rules"
+                    ]
+                  },
+                  "location": {
+                    "references": [
+                      "var.location"
+                    ]
+                  },
+                  "names": {
+                    "references": [
+                      "var.names"
+                    ]
+                  },
+                  "prefix": {
+                    "references": [
+                      "var.prefix"
+                    ]
+                  },
+                  "project_id": {
+                    "references": [
+                      "var.project_id"
+                    ]
+                  },
+                  "public_access_prevention": {
+                    "constant_value": "inherited"
+                  },
+                  "randomize_suffix": {
+                    "references": [
+                      "var.randomize_suffix"
+                    ]
+                  },
+                  "retention_policy": {
+                    "references": [
+                      "var.retention_policy"
+                    ]
+                  },
+                  "storage_class": {
+                    "references": [
+                      "var.storage_class"
+                    ]
+                  },
+                  "versioning": {
+                    "references": [
+                      "var.versioning"
+                    ]
+                  },
+                  "viewers": {
+                    "references": [
+                      "var.viewers"
+                    ]
+                  }
+                },
+                "module": {
+                  "outputs": {
+                    "bucket": {
+                      "expression": {
+                        "references": [
+                          "local.first_bucket"
+                        ]
+                      },
+                      "description": "Bucket resource (for single use)."
+                    },
+                    "buckets": {
+                      "expression": {
+                        "references": [
+                          "local.buckets_list"
+                        ]
+                      },
+                      "description": "Bucket resources as list."
+                    },
+                    "buckets_map": {
+                      "expression": {
+                        "references": [
+                          "google_storage_bucket.buckets"
+                        ]
+                      },
+                      "description": "Bucket resources by name."
+                    },
+                    "hmac_keys": {
+                      "sensitive": true,
+                      "expression": {
+                        "references": [
+                          "google_storage_hmac_key.hmac_keys"
+                        ]
+                      },
+                      "description": "List of HMAC keys."
+                    },
+                    "name": {
+                      "expression": {
+                        "references": [
+                          "local.first_bucket.name",
+                          "local.first_bucket"
+                        ]
+                      },
+                      "description": "Bucket name (for single use)."
+                    },
+                    "names": {
+                      "expression": {
+                        "references": [
+                          "google_storage_bucket.buckets"
+                        ]
+                      },
+                      "description": "Bucket names."
+                    },
+                    "names_list": {
+                      "expression": {
+                        "references": [
+                          "local.buckets_list"
+                        ]
+                      },
+                      "description": "List of bucket names."
+                    },
+                    "url": {
+                      "expression": {
+                        "references": [
+                          "local.first_bucket.url",
+                          "local.first_bucket"
+                        ]
+                      },
+                      "description": "Bucket URL (for single use)."
+                    },
+                    "urls": {
+                      "expression": {
+                        "references": [
+                          "google_storage_bucket.buckets"
+                        ]
+                      },
+                      "description": "Bucket URLs."
+                    },
+                    "urls_list": {
+                      "expression": {
+                        "references": [
+                          "local.buckets_list"
+                        ]
+                      },
+                      "description": "List of bucket URLs."
+                    }
+                  },
+                  "resources": [
+                    {
+                      "address": "google_storage_bucket.buckets",
+                      "mode": "managed",
+                      "type": "google_storage_bucket",
+                      "name": "buckets",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "autoclass": [
+                          {
+                            "enabled": {
+                              "references": [
+                                "var.autoclass",
+                                "each.value"
+                              ]
+                            }
+                          }
+                        ],
+                        "default_event_based_hold": {
+                          "references": [
+                            "var.default_event_based_hold",
+                            "each.value"
+                          ]
+                        },
+                        "force_destroy": {
+                          "references": [
+                            "var.force_destroy",
+                            "each.value"
+                          ]
+                        },
+                        "labels": {
+                          "references": [
+                            "var.labels",
+                            "var.prefix",
+                            "each.value"
+                          ]
+                        },
+                        "location": {
+                          "references": [
+                            "var.location"
+                          ]
+                        },
+                        "name": {
+                          "references": [
+                            "var.prefix",
+                            "each.value",
+                            "local.suffix"
+                          ]
+                        },
+                        "project": {
+                          "references": [
+                            "var.project_id"
+                          ]
+                        },
+                        "public_access_prevention": {
+                          "references": [
+                            "var.public_access_prevention"
+                          ]
+                        },
+                        "storage_class": {
+                          "references": [
+                            "var.storage_class"
+                          ]
+                        },
+                        "uniform_bucket_level_access": {
+                          "references": [
+                            "var.bucket_policy_only",
+                            "each.value"
+                          ]
+                        },
+                        "versioning": [
+                          {
+                            "enabled": {
+                              "references": [
+                                "var.versioning",
+                                "each.value"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "schema_version": 1,
+                      "for_each_expression": {
+                        "references": [
+                          "local.names_set"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_bucket_iam_binding.admins",
+                      "mode": "managed",
+                      "type": "google_storage_bucket_iam_binding",
+                      "name": "admins",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "bucket": {
+                          "references": [
+                            "google_storage_bucket.buckets",
+                            "each.value"
+                          ]
+                        },
+                        "members": {
+                          "references": [
+                            "var.admins",
+                            "var.bucket_admins",
+                            "each.value"
+                          ]
+                        },
+                        "role": {
+                          "constant_value": "roles/storage.objectAdmin"
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "var.set_admin_roles",
+                          "local.names_set"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_bucket_iam_binding.creators",
+                      "mode": "managed",
+                      "type": "google_storage_bucket_iam_binding",
+                      "name": "creators",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "bucket": {
+                          "references": [
+                            "google_storage_bucket.buckets",
+                            "each.value"
+                          ]
+                        },
+                        "members": {
+                          "references": [
+                            "var.creators",
+                            "var.bucket_creators",
+                            "each.value"
+                          ]
+                        },
+                        "role": {
+                          "constant_value": "roles/storage.objectCreator"
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "var.set_creator_roles",
+                          "local.names_set"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_bucket_iam_binding.hmac_key_admins",
+                      "mode": "managed",
+                      "type": "google_storage_bucket_iam_binding",
+                      "name": "hmac_key_admins",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "bucket": {
+                          "references": [
+                            "google_storage_bucket.buckets",
+                            "each.key"
+                          ]
+                        },
+                        "members": {
+                          "references": [
+                            "var.hmac_key_admins",
+                            "var.bucket_hmac_key_admins",
+                            "each.key"
+                          ]
+                        },
+                        "role": {
+                          "constant_value": "roles/storage.hmacKeyAdmin"
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "var.set_hmac_key_admin_roles",
+                          "local.names_set"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_bucket_iam_binding.storage_admins",
+                      "mode": "managed",
+                      "type": "google_storage_bucket_iam_binding",
+                      "name": "storage_admins",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "bucket": {
+                          "references": [
+                            "google_storage_bucket.buckets",
+                            "each.value"
+                          ]
+                        },
+                        "members": {
+                          "references": [
+                            "var.storage_admins",
+                            "var.bucket_storage_admins",
+                            "each.value"
+                          ]
+                        },
+                        "role": {
+                          "constant_value": "roles/storage.admin"
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "var.set_storage_admin_roles",
+                          "local.names_set"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_bucket_iam_binding.viewers",
+                      "mode": "managed",
+                      "type": "google_storage_bucket_iam_binding",
+                      "name": "viewers",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "bucket": {
+                          "references": [
+                            "google_storage_bucket.buckets",
+                            "each.value"
+                          ]
+                        },
+                        "members": {
+                          "references": [
+                            "var.viewers",
+                            "var.bucket_viewers",
+                            "each.value"
+                          ]
+                        },
+                        "role": {
+                          "constant_value": "roles/storage.objectViewer"
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "var.set_viewer_roles",
+                          "local.names_set"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_bucket_object.folders",
+                      "mode": "managed",
+                      "type": "google_storage_bucket_object",
+                      "name": "folders",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "bucket": {
+                          "references": [
+                            "google_storage_bucket.buckets",
+                            "each.value.bucket",
+                            "each.value"
+                          ]
+                        },
+                        "content": {
+                          "constant_value": "foo"
+                        },
+                        "name": {
+                          "references": [
+                            "each.value.folder",
+                            "each.value"
+                          ]
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "local.folder_list"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "google_storage_hmac_key.hmac_keys",
+                      "mode": "managed",
+                      "type": "google_storage_hmac_key",
+                      "name": "hmac_keys",
+                      "provider_config_key": "module.cloud_storage.module.cloud_storage:google",
+                      "expressions": {
+                        "project": {
+                          "references": [
+                            "var.project_id"
+                          ]
+                        },
+                        "service_account_email": {
+                          "references": [
+                            "each.key"
+                          ]
+                        },
+                        "state": {
+                          "references": [
+                            "each.value"
+                          ]
+                        }
+                      },
+                      "schema_version": 0,
+                      "for_each_expression": {
+                        "references": [
+                          "var.set_hmac_access",
+                          "var.hmac_service_accounts"
+                        ]
+                      }
+                    },
+                    {
+                      "address": "random_id.bucket_suffix",
+                      "mode": "managed",
+                      "type": "random_id",
+                      "name": "bucket_suffix",
+                      "provider_config_key": "module.cloud_storage:random",
+                      "expressions": {
+                        "byte_length": {
+                          "constant_value": 2
+                        }
+                      },
+                      "schema_version": 0,
+                      "count_expression": {
+                        "references": [
+                          "var.randomize_suffix"
+                        ]
+                      }
+                    }
+                  ],
+                  "variables": {
+                    "admins": {
+                      "default": [],
+                      "description": "IAM-style members who will be granted roles/storage.objectAdmin on all buckets."
+                    },
+                    "autoclass": {
+                      "default": {},
+                      "description": "Optional map of lowercase unprefixed bucket name => boolean, defaults to false."
+                    },
+                    "bucket_admins": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket admins."
+                    },
+                    "bucket_creators": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket creators."
+                    },
+                    "bucket_hmac_key_admins": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket HMAC Key admins."
+                    },
+                    "bucket_lifecycle_rules": {
+                      "default": {},
+                      "description": "Additional lifecycle_rules for specific buckets. Map of lowercase unprefixed name => list of lifecycle rules to configure."
+                    },
+                    "bucket_policy_only": {
+                      "default": {},
+                      "description": "Disable ad-hoc ACLs on specified buckets. Defaults to true. Map of lowercase unprefixed name => boolean"
+                    },
+                    "bucket_storage_admins": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket storage admins."
+                    },
+                    "bucket_viewers": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket viewers."
+                    },
+                    "cors": {
+                      "default": [],
+                      "description": "Set of maps of mixed type attributes for CORS values. See appropriate attribute types here: https://www.terraform.io/docs/providers/google/r/storage_bucket.html#cors"
+                    },
+                    "creators": {
+                      "default": [],
+                      "description": "IAM-style members who will be granted roles/storage.objectCreators on all buckets."
+                    },
+                    "custom_placement_config": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => custom placement config object. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket#custom_placement_config"
+                    },
+                    "default_event_based_hold": {
+                      "default": {},
+                      "description": "Enable event based hold to new objects added to specific bucket. Defaults to false. Map of lowercase unprefixed name => boolean"
+                    },
+                    "encryption_key_names": {
+                      "default": {},
+                      "description": "Optional map of lowercase unprefixed name => string, empty strings are ignored."
+                    },
+                    "folders": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => list of top level folder objects."
+                    },
+                    "force_destroy": {
+                      "default": {},
+                      "description": "Optional map of lowercase unprefixed name => boolean, defaults to false."
+                    },
+                    "hmac_key_admins": {
+                      "default": [],
+                      "description": "IAM-style members who will be granted roles/storage.hmacKeyAdmin on all buckets."
+                    },
+                    "hmac_service_accounts": {
+                      "default": {},
+                      "description": "List of HMAC service accounts to grant access to GCS."
+                    },
+                    "labels": {
+                      "default": {},
+                      "description": "Labels to be attached to the buckets"
+                    },
+                    "lifecycle_rules": {
+                      "default": [],
+                      "description": "List of lifecycle rules to configure. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket.html#lifecycle_rule except condition.matches_storage_class should be a comma delimited string."
+                    },
+                    "location": {
+                      "default": "EU",
+                      "description": "Bucket location."
+                    },
+                    "logging": {
+                      "default": {},
+                      "description": "Map of lowercase unprefixed name => bucket logging config object. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket.html#logging"
+                    },
+                    "names": {
+                      "description": "Bucket name suffixes."
+                    },
+                    "prefix": {
+                      "default": "",
+                      "description": "Prefix used to generate the bucket name."
+                    },
+                    "project_id": {
+                      "description": "Bucket project id."
+                    },
+                    "public_access_prevention": {
+                      "default": "inherited",
+                      "description": "Prevents public access to a bucket. Acceptable values are inherited or enforced. If inherited, the bucket uses public access prevention, only if the bucket is subject to the public access prevention organization policy constraint."
+                    },
+                    "randomize_suffix": {
+                      "default": false,
+                      "description": "Adds an identical, but randomized 4-character suffix to all bucket names"
+                    },
+                    "retention_policy": {
+                      "default": {},
+                      "description": "Map of retention policy values. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket#retention_policy"
+                    },
+                    "set_admin_roles": {
+                      "default": false,
+                      "description": "Grant roles/storage.objectAdmin role to admins and bucket_admins."
+                    },
+                    "set_creator_roles": {
+                      "default": false,
+                      "description": "Grant roles/storage.objectCreator role to creators and bucket_creators."
+                    },
+                    "set_hmac_access": {
+                      "default": false,
+                      "description": "Set S3 compatible access to GCS."
+                    },
+                    "set_hmac_key_admin_roles": {
+                      "default": false,
+                      "description": "Grant roles/storage.hmacKeyAdmin role to hmac_key_admins and bucket_hmac_key_admins."
+                    },
+                    "set_storage_admin_roles": {
+                      "default": false,
+                      "description": "Grant roles/storage.admin role to storage_admins and bucket_storage_admins."
+                    },
+                    "set_viewer_roles": {
+                      "default": false,
+                      "description": "Grant roles/storage.objectViewer role to viewers and bucket_viewers."
+                    },
+                    "storage_admins": {
+                      "default": [],
+                      "description": "IAM-style members who will be granted roles/storage.admin on all buckets."
+                    },
+                    "storage_class": {
+                      "default": "STANDARD",
+                      "description": "Bucket storage class."
+                    },
+                    "versioning": {
+                      "default": {},
+                      "description": "Optional map of lowercase unprefixed name => boolean, defaults to false."
+                    },
+                    "viewers": {
+                      "default": [],
+                      "description": "IAM-style members who will be granted roles/storage.objectViewer on all buckets."
+                    },
+                    "website": {
+                      "default": {},
+                      "description": "Map of website values. Supported attributes: main_page_suffix, not_found_page"
+                    }
+                  }
+                },
+                "version_constraint": "~> 5.0"
+              }
+            },
+            "variables": {
+              "admins": {
+                "default": [],
+                "description": "IAM-style members who will be granted roles/storage.objectAdmin on all buckets."
+              },
+              "autoclass": {
+                "default": {},
+                "description": "Optional map of lowercase unprefixed bucket name => boolean, defaults to false."
+              },
+              "bucket_admins": {
+                "default": {},
+                "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket admins."
+              },
+              "bucket_creators": {
+                "default": {},
+                "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket creators."
+              },
+              "bucket_lifecycle_rules": {
+                "default": {},
+                "description": "Additional lifecycle_rules for specific buckets. Map of lowercase unprefixed name => list of lifecycle rules to configure."
+              },
+              "bucket_storage_admins": {
+                "default": {},
+                "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket storage admins."
+              },
+              "bucket_viewers": {
+                "default": {},
+                "description": "Map of lowercase unprefixed name => comma-delimited IAM-style per-bucket viewers."
+              },
+              "creators": {
+                "default": [],
+                "description": "IAM-style members who will be granted roles/storage.objectCreators on all buckets."
+              },
+              "encryption_key_names": {
+                "default": {},
+                "description": "Optional map of lowercase unprefixed name => string, empty strings are ignored."
+              },
+              "folders": {
+                "default": {},
+                "description": "Map of lowercase unprefixed name => list of top level folder objects."
+              },
+              "labels": {
+                "default": {},
+                "description": "Labels to be attached to the buckets"
+              },
+              "lifecycle_rules": {
+                "default": [],
+                "description": "List of lifecycle rules to configure. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket.html#lifecycle_rule except condition.matches_storage_class should be a comma delimited string."
+              },
+              "location": {
+                "default": "US",
+                "description": "Bucket location."
+              },
+              "names": {
+                "description": "Bucket name suffixes."
+              },
+              "prefix": {
+                "default": "",
+                "description": "Prefix used to generate the bucket name."
+              },
+              "project_id": {
+                "description": "Bucket project id."
+              },
+              "randomize_suffix": {
+                "default": false,
+                "description": "Adds an identical, but randomized 4-character suffix to all bucket names"
+              },
+              "retention_policy": {
+                "default": {},
+                "description": "Map of retention policy values. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket#retention_policy"
+              },
+              "storage_admins": {
+                "default": [],
+                "description": "IAM-style members who will be granted roles/storage.admin on all buckets."
+              },
+              "storage_class": {
+                "default": "STANDARD",
+                "description": "Bucket storage class."
+              },
+              "versioning": {
+                "default": {},
+                "description": "Optional map of lowercase unprefixed name => boolean, defaults to false."
+              },
+              "viewers": {
+                "default": [],
+                "description": "IAM-style members who will be granted roles/storage.objectViewer on all buckets."
+              }
+            }
+          }
+        }
+      },
+      "variables": {
+        "autoclass": {
+          "default": {},
+          "description": "Optional map of lowercase unprefixed bucket name => boolean, defaults to false."
+        },
+        "bucket_lifecycle_rules": {
+          "default": {},
+          "description": "Additional lifecycle_rules for specific buckets. Map of lowercase unprefixed name => list of lifecycle rules to configure."
+        },
+        "folders": {
+          "description": "A map of folder names for each bucket"
+        },
+        "labels": {
+          "default": null,
+          "description": "A set of key/value label pairs to assign to the bucket."
+        },
+        "lifecycle_rules": {
+          "default": [],
+          "description": "List of lifecycle rules to configure. Format is the same as described in provider documentation https://www.terraform.io/docs/providers/google/r/storage_bucket.html#lifecycle_rule except condition.matches_storage_class should be a comma delimited string."
+        },
+        "location": {
+          "default": "us-central1",
+          "description": "The location of the bucket"
+        },
+        "names": {
+          "description": "A list of bucket names to create"
+        },
+        "prefix": {
+          "description": "The prefix to use for bucket names"
+        },
+        "project_id": {
+          "description": "The ID of the Google Cloud project"
+        },
+        "randomize_suffix": {
+          "description": "Whether to randomize the suffix of bucket names"
+        }
+      }
+    }
+  },
+  "relevant_attributes": [
+    {
+      "resource": "module.cloud_storage.module.cloud_storage.google_storage_bucket.buckets",
+      "attribute": []
+    },
+    {
+      "resource": "module.cloud_storage.module.cloud_storage.google_storage_hmac_key.hmac_keys",
+      "attribute": []
+    },
+    {
+      "resource": "module.cloud_storage.module.cloud_storage.random_id.bucket_suffix[0]",
+      "attribute": [
+        "hex"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "address": {
+        "kind": "var",
+        "name": "labels",
+        "to_display": "var.labels"
+      },
+      "status": "pass",
+      "instances": [
+        {
+          "address": {
+            "to_display": "var.labels"
+          },
+          "status": "pass"
+        }
+      ]
+    }
+  ],
+  "timestamp": "2024-04-22T12:36:53Z",
+  "errored": false
+}

@@ -1,0 +1,41 @@
+{
+  "aws_lambda_function": {
+    "resources": [
+      "aws_lambda_function",
+      "aws_dynamodb_table"
+    ],
+    "accepted_modules" : [
+      "test_lambda_module"
+    ]
+  },
+  "helm_release": {
+    "resources" : [
+      "helm_release"
+    ],
+    "accepted_modules": [
+      "test_helm_module"
+    ]
+  },
+  "google_cloud_compute": {
+    "resources": [
+      "google_cloud_compute"
+    ],
+    "accepted_modules": [
+      "test-cloud-foundations-org/terraform-gcp-module-gce"
+    ]
+  },
+  "google_storage_bucket": {
+    "resources": [
+      "google_storage_bucket"
+    ],
+    "accepted_modules": [
+      "test-cloud-foundations-org/terraform-gcp-module-gcs"
+    ]
+  },
+  "google_container_cluster": {
+    "resources": [
+      "google_container_cluster"
+    ],
+    "accepted_modules": []
+  }
+}
