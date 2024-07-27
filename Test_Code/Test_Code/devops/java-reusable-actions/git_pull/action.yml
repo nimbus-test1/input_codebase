@@ -1,0 +1,26 @@
+# action.yaml
+name: 'Common-Build-Pipeline'
+description: 'This github action can be used to build application CI jobs'
+inputs:
+  buildfile:
+    description: 'Pass in your build YAML'
+    required: true
+    default: ""
+
+outputs:
+  buildInfo:
+    description: "return a string with build json"
+    value: ${{ steps.getBuildInfo.outputs.buildInfo }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: CommonBuildPipeline
+      id: getBuildInfo
+      run: |
+        export deployStart=`date +%s`
+        wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py
+        python get-pip.py
+        pip -q install -r ${GITHUB_ACTION_PATH}/requirements.txt
+        python ${GITHUB_ACTION_PATH}/gitpull.py ${{ inputs.buildfile }}
+      shell: bash

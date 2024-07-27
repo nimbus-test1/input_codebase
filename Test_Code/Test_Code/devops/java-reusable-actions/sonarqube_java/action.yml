@@ -1,0 +1,268 @@
+name: SonarQube Java Action
+description: Use this actions to run SonarQube analysis for Java based applications.
+
+inputs:
+  HOST_URL:
+    required: true
+    description: 'Sonarqube host url'
+  TOKEN:
+    required: true
+    description: 'Sonarqube token'
+  projectKey:
+    required: true
+    description: 'project key for enterprise sonarqube'
+  projectName:
+    required: true
+    description: 'project name'
+  branchName:
+    required: true
+    description: 'brach of caller repository'
+  buildfile:
+    required: true
+    description: 'Pass in your build json text'
+  DIGITAL_JFROG_USERNAME:
+    required: true
+    description: 'jfrog username'
+  DIGITAL_JFROG_TOKEN:
+    required: true
+    description: 'jfrog token'
+  JAVA_FRAMEWORK:
+    required: false
+    description: 'provide framework eg maven or ant'
+  APPLICATION_PROPERTIES:
+    description: 'APPLICATION_PROPERTIES EG staging or peoduction'
+    required: false
+  JAVA_VERSION:
+    required: true
+    description: Provide java version
+    default: 17
+    
+runs:
+  using: composite
+  steps:
+      
+    - name: build java using maven for DEGT
+      id: DEGT-maven
+      shell: bash
+      if: ${{ inputs.JAVA_FRAMEWORK == 'maven' || inputs.JAVA_FRAMEWORK == 'MAVEN' || inputs.JAVA_FRAMEWORK == 'Maven' || inputs.JAVA_FRAMEWORK == 'mvn'}}
+      run: echo "DEGT-maven=true" >> $GITHUB_ENV
+    
+    - name: build java using ant for DEGT
+      id: DEGT-ant
+      shell: bash
+      if: ${{ inputs.JAVA_FRAMEWORK == 'ant' || inputs.JAVA_FRAMEWORK == 'ANT' || inputs.JAVA_FRAMEWORK == 'Ant' }}
+      run: echo "DEGT-ant=true" >> $GITHUB_ENV
+
+    - name: create-json
+      if: ${{env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      if: ${{env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+  
+    - name: Get Java Version from build info
+      if: ${{ startsWith( env.buildInfo_lang, 'java' ) && (env.DEGT-maven != 'true' && env.DEGT-ant != 'true') }}
+      id: JavaBuildVersion
+      run: |
+        echo "extracting Java Version from buildInfo_lang = ${{ env.buildInfo_lang }}"
+        DEFAULT_JAVA_VERSION=8
+        BUILD_LANG_VERSION=$(echo ${{ env.buildInfo_lang }} | tr -cd '[:digit:]')
+        if [[ $BUILD_LANG_VERSION ]]; then 
+          echo "java_version=$(echo $BUILD_LANG_VERSION)" >> "$GITHUB_OUTPUT"
+        else
+          echo "java_version=$(echo $DEFAULT_JAVA_VERSION)" >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash -l {0}
+
+    - name: Install Java using env var if needed
+      if: ${{ (!env.ACT) && startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: |
+          ${{ steps.JavaBuildVersion.outputs.java_version }}
+
+    - name: Map Maven Version based on Java Version
+      if: ${{ (!env.ACT) && startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      id: MavenVersionCheck
+      run: |
+        echo "Mapping Maven Version to Java Version = ${{ steps.JavaBuildVersion.outputs.java_version }}"
+        DEFAULT_MAVEN_VERSION=3.8.2
+        LATEST_MAVEN_VERSION=3.9.6
+        JAVA17_MAVEN_VERSION=3.8.8
+        if [[ ${{ steps.JavaBuildVersion.outputs.java_version }} == 17 ]]; then 
+          echo "maven_version=$(echo $JAVA17_MAVEN_VERSION)" >> "$GITHUB_OUTPUT"
+        elif [[ ${{ steps.JavaBuildVersion.outputs.java_version }} > 17 ]]; then 
+          echo "maven_version=$(echo $LATEST_MAVEN_VERSION)" >> "$GITHUB_OUTPUT"
+        else
+          echo "maven_version=$(echo $DEFAULT_MAVEN_VERSION)" >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash -l {0}
+      
+    - name: Install Maven
+      if: ${{ (!env.ACT) && startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      uses: stCarolas/setup-maven@v5
+      with:
+        maven-version: ${{ steps.MavenVersionCheck.outputs.maven_version }}
+
+    - name: Verify java and maven installation
+      if: ${{ startsWith( env.buildInfo_lang, 'java' )  && (env.DEGT-maven != 'true' && env.DEGT-ant != 'true')}}
+      run: |
+        which java || true
+        which mvn || true
+        echo $JAVA_HOME
+        java -version || true
+      shell: bash -l {0}
+
+    - name: Maven settings
+      if: ${{env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      working-directory: ${{ env.buildInfo_path }}
+      continue-on-error: true
+      env:
+        PYTHONUNBUFFERED: "1"
+      run: |
+        MAVEN_SCRIPTS_PATH=$(echo $(dirname ${GITHUB_ACTION_PATH})/maven_settings)
+        pip3 -q install -r ${MAVEN_SCRIPTS_PATH}/requirements.txt
+        python3 ${MAVEN_SCRIPTS_PATH}/maven_settings.py \
+          --settings ${MAVEN_SCRIPTS_PATH}/settings.xml \
+          --jfrog_user ${{ inputs.DIGITAL_JFROG_USERNAME }} \
+          --jfrog_token ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        cat ${MAVEN_SCRIPTS_PATH}/settings.xml
+        mv ${MAVEN_SCRIPTS_PATH}/settings.xml .
+      shell: bash -le {0}
+
+    - name: Install gcompat for Alpine linux
+      if: ${{ startsWith( env.buildInfo_lang, 'java' ) && (env.DEGT-maven != 'true' && env.DEGT-ant != 'true') }}
+      working-directory: ${{ env.buildInfo_path }}
+      continue-on-error: true
+      run: |
+        . /etc/os-release
+        pom_path=$(find . -iname pom.xml)
+        check_libc=$(ldd /bin/ls)
+        echo $check_libc
+        # If dynamodb-local module in POM and libc version is musl then install gcompat
+        # Alpine/busybox linux uses musl libc and may cause issues for glibc dependency
+        if grep -qi dynamodblocal $pom_path && $(echo $check_libc | grep -qi 'musl') ; then
+            echo "Installing gcompat on Alpine"
+            apk update
+            apk add gcompat
+            echo "LD_PRELOAD=/lib/libgcompat.so.0" >> $GITHUB_ENV
+        fi
+      shell: bash -le {0}
+
+    - name: Do not wait on SonarQube if this is a -forked repo
+      if: ${{env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      id: repoNameCheck
+      run: |
+        echo "Checking if this is a Forked Repo"
+        substring="-forked"
+        if [[ ${{ env.buildInfo_repoName }} =~ $substring$ ]]; then
+          echo "Setting Wait on Sonarqube to false"
+          echo "wait=false" >> $GITHUB_OUTPUT
+        else
+          echo "Not a forked repo. Setting Wait on SonarQube to true"
+          echo "wait=true" >> $GITHUB_OUTPUT
+        fi
+      shell: bash -le {0}
+
+    - name: Sonar Analysis (Docker)
+      if: ${{ (!env.ACT) && (env.buildInfo_buildtype == 'docker') && (env.buildInfo_lang != 'docker') && (env.DEGT-maven != 'true' && env.DEGT-ant != 'true') }}
+      working-directory: "${{ env.buildInfo_path }}"
+      env:
+        WAIT: ${{ steps.repoNameCheck.outputs.wait }}
+      run: |
+        pwd
+        ls
+        echo "Build type = docker"
+        mvn install --batch-mode --quiet -s settings.xml
+        if [ "${{ inputs.branchName }}" = "${{ github.event.repository.default_branch }}" ]; then
+          mvn sonar:sonar --batch-mode --quiet \
+            -Dsonar.host.url="${{ inputs.HOST_URL }}" \
+            -Dsonar.login="${{ inputs.TOKEN }}" \
+            -Dsonar.projectKey="${{ inputs.projectKey }}" \
+            -Dsonar.projectName="${{ inputs.projectName }}" \
+            -Dsonar.qualitygate.wait=${{ env.WAIT }} \
+            -Dsonar.qualitygate.timeout=300
+        else
+          mvn sonar:sonar --batch-mode \
+            -Dsonar.host.url="${{ inputs.HOST_URL }}" \
+            -Dsonar.login="${{ inputs.TOKEN }}" \
+            -Dsonar.projectKey="${{ inputs.projectKey }}" \
+            -Dsonar.branch.name="${{ inputs.branchName }}" \
+            -Dsonar.projectName="${{ inputs.projectName }}" \
+            -Dsonar.qualitygate.wait=${{ env.WAIT }} \
+            -Dsonar.qualitygate.timeout=300
+        fi
+      shell: bash -le {0}
+      
+    - name: Sonar Analysis (Lambda)
+      if: ${{ (!env.ACT) && (env.buildInfo_buildtype == 'lambda')  && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'}}
+      working-directory: "${{ env.buildInfo_path }}"
+      env:
+        WAIT: ${{ steps.repoNameCheck.outputs.wait }}
+      run: |
+        pwd
+        ls
+        echo "Build type = Lambda"
+        mvn install --batch-mode --quiet -s settings.xml
+        if [ "${{ inputs.branchName }}" = "${{ github.event.repository.default_branch }}" ]; then
+          echo "Running mvn install for default branch"
+          mvn sonar:sonar \
+              -Dsonar.host.url="${{ inputs.HOST_URL }}" \
+              -Dsonar.login="${{ inputs.TOKEN }}" \
+              -Dsonar.projectName="${{ inputs.projectName }}" \
+              -Dsonar.projectKey="${{ inputs.projectKey }}" \
+              -Dsonar.qualitygate.wait=${{ env.WAIT }} \
+              -Dsonar.qualitygate.timeout=300 \
+              --batch-mode --quiet
+        else
+          echo "Running mvn install for non-default branch (${{ inputs.branchName }})"
+          mvn sonar:sonar \
+              -Dsonar.host.url="${{ inputs.HOST_URL }}" \
+              -Dsonar.projectName="${{ inputs.projectName }}" \
+              -Dsonar.login="${{ inputs.TOKEN }}" \
+              -Dsonar.projectKey="${{ inputs.projectKey }}" \
+              -Dsonar.branch.name="${{ inputs.branchName }}" \
+              -Dsonar.qualitygate.wait=${{ env.WAIT }} \
+              -Dsonar.qualitygate.timeout=300 \
+              --batch-mode
+        fi
+      shell: bash -le {0}
+
+    - name: Setup Java
+      if: ${{ env.DEGT-maven == 'true' || env.DEGT-ant == 'true'  }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{(inputs.JAVA_VERSION)}}
+        distribution: 'temurin' # Can be 'adopt', 'zulu', 'temurin', etc.
+    
+    - name: sonar scan with Maven (GERMANY)
+      if:  ${{ env.DEGT-maven == 'true' }}
+      shell: bash
+      run: |
+        # sonar scan commands
+        mvn sonar:sonar -P ${{ inputs.APPLICATION_PROPERTIES }} \
+        -Dsonar.java.binaries=target/classes \
+        -Dsonar.projectKey=${{ inputs.PROJECTKEY }} \
+        -Dsonar.projectName=${{ inputs.PROJECTNAME }} \
+        -Dsonar.host.url=${{ inputs.HOST_URL }} \
+        -Dsonar.login=${{ inputs.TOKEN }} 
+
+    - name: sonar scan with ant
+      shell: bash
+      if: ${{ env.DEGT-ant == 'true' }}
+      run: |
+        # sonar scan commands
+        sonar-scanner  \
+        -Dsonar.projectKey=${{ inputs.PROJECTKEY }} \
+        -Dsonar.projectName=${{ inputs.PROJECTNAME }} \
+        -Dsonar.host.url=${{ inputs.HOST_URL }} \
+        -Dsonar.login=${{ inputs.TOKEN }}

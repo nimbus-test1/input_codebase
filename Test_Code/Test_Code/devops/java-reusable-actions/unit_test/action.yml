@@ -1,0 +1,41 @@
+# action.yaml
+name: Unit Test Task
+description: Unit Test Action
+inputs:
+  buildfile:
+    required: true
+    description: 'Pass in your build json text'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Docker Unit Test
+      if: ${{ env.buildInfo_buildtype == 'docker'}}
+      working-directory: .github/workflows
+      run: |
+        json_string=$(echo '${{ inputs.buildfile }}' | jq -c '.')
+        groovy -e "new ProjectGHA().beforeTest('$json_string')"
+        groovy -e "new ProjectGHA().afterTest('$json_string')"
+      shell: bash -l {0}
+
+    - name: Lambda Unit Tests
+      if: ${{ env.buildInfo_buildtype == 'lambda'}}
+      working-directory: .github/workflows
+      run: |
+        json_string=$(echo '${{ inputs.buildfile }}' | jq -c '.')
+        groovy -e "new ProjectGHA().beforeTest('$json_string')"
+        groovy -e "new ProjectGHA().afterTest('$json_string')"
+      shell: bash  -l {0}

@@ -1,0 +1,230 @@
+name: Build Java
+description: Build java app
+
+inputs:
+  java_framework:
+    required: false
+    description: 'provide framework eg maven, ant'
+  artifactoryHostUrl:
+    description: 'string for jfrog artifactory host url'
+  buildfile:
+    required: false
+    description: 'Pass in your build json text'
+  java_distribution:
+    required: false
+    description: 'Java Distribution for installation'
+  java_version:
+    required: false
+    description: 'Java Version for installation'
+  mvn_version:
+    required: false
+    description: 'Maven Version for installation'
+  DIGITAL_JFROG_USERNAME:
+    required: false
+    description: 'jfrog username'
+  DIGITAL_JFROG_TOKEN:
+    required: false
+    description: 'jfrog token'
+  APPLICATION_PROPERTIES:
+    required: false
+    description: 'Maven profile for application properties'
+outputs:
+  env_token:
+    description: "Random number"
+    value: ${{ steps.DEGT-maven.outputs.env_token }}
+  env_token_ant:
+    description: "Random number"
+    value: ${{ steps.DEGT-ant.outputs.env_token_ant }}
+
+runs:
+  using: composite
+  steps:
+    - name: build java using maven for DEGT
+      id: DEGT-maven
+      shell: bash
+      if: ${{ inputs.java_framework == 'maven' || inputs.java_framework == 'MAVEN' || inputs.java_framework == 'Maven' }}
+      run: |
+        mvn clean install -P ${{ inputs.APPLICATION_PROPERTIES }}
+        echo "DEGT-maven=true" >> $GITHUB_ENV
+        echo "env_token=true" >> $GITHUB_OUTPUT
+
+    - name: output-github
+      id: DEGT-output
+      env:
+        maven-output: ${{ steps.DEGT-maven.outputs.env_token }}
+      shell: bash
+      run: |
+        echo '${{env.maven-output}}'
+
+    - name: build java using ant for DEGT
+      id: DEGT-ant
+      shell: bash
+      if: ${{ inputs.java_framework == 'ant' || inputs.java_framework == 'ANT' || inputs.java_framework == 'Ant' }}
+      run: |
+        ant dist -Dbuild.root= ${{ inputs.BUILD_ROOT }}
+        echo "DEGT-ant=true" >> $GITHUB_ENV
+        echo "env_token_ant=true" >> $GITHUB_OUTPUT
+  
+    - name: create-json
+      if: ${{ env.DEGT-maven != 'true' && env.DEGT-ant != 'true' }}
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+    
+    - name: Perform sed operation on buildInfo.json
+      if: ${{ env.DEGT-maven != 'true' && env.DEGT-ant != 'true' }}
+      run: |
+        sed -i "s/'/\"/g" buildInfo.json
+      shell: bash -le {0}
+
+    - name: JSON to variables
+      if: env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Verify java and maven installation
+      if: startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      run: |
+        which java
+        which mvn
+        echo %JAVA_HOME%
+        echo $JAVA_HOME
+        java -version
+      shell: bash -l {0}
+
+    - name: Maven settings
+      if: env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      working-directory: ${{ env.buildInfo_path }}
+      continue-on-error: true
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        PYTHONUNBUFFERED: "1"
+      run: |
+        MAVEN_SCRIPTS_PATH=$(echo $(dirname ${GITHUB_ACTION_PATH})/maven_settings)
+        pip3 -q install -r ${MAVEN_SCRIPTS_PATH}/requirements.txt
+        python3 ${MAVEN_SCRIPTS_PATH}/maven_settings.py \
+          --settings ${MAVEN_SCRIPTS_PATH}/settings.xml \
+          --jfrog_user ${{ inputs.DIGITAL_JFROG_USERNAME }} \
+          --jfrog_token ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        cat ${MAVEN_SCRIPTS_PATH}/settings.xml
+        mv ${MAVEN_SCRIPTS_PATH}/settings.xml .
+      shell: bash -le {0}
+
+    - name: Run mvn clean install with profile
+      if: startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      run: |
+        cd ${{ env.buildInfo_path }}
+      shell: bash -le {0}
+      
+
+    - name: Install gcompat for Alpine linux
+      if: startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      working-directory: ${{ env.buildInfo_path }}
+      continue-on-error: true
+      run: |
+        . /etc/os-release
+        pom_path=$(find . -iname pom.xml)
+        check_libc=$(ldd /bin/ls)
+        echo $check_libc
+        # If dynamodb-local module in POM and libc version is musl then install gcompat
+        # Alpine/busybox linux uses musl libc and may cause issues for glibc dependency
+        if grep -qi dynamodblocal $pom_path && $(echo $check_libc | grep -qi 'musl') ; then
+            echo "Installing gcompat on Alpine"
+            apk update
+            apk add gcompat
+            echo "LD_PRELOAD=/lib/libgcompat.so.0" >> $GITHUB_ENV
+        fi
+      shell: bash -le {0}
+
+    - name: Build Docker Application
+      if: env.buildInfo_buildtype == 'docker' && startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+      run: |
+        cd ${{ env.buildInfo_path }}
+        mvn install --batch-mode -ntp -s settings.xml
+        pwd
+        find .
+      shell: bash -le {0}
+
+    - name: Build java11 Lambda Applicaition
+      if: env.buildInfo_buildtype  == 'lambda' && env.buildInfo_lang == 'java11' && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      working-directory: ${{ env.buildInfo_path }}
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+      run: |
+        echo 'start building Java 11 package'
+        mvn clean package shade:shade --batch-mode -ntp -s settings.xml
+        echo 'end building Java 11 package'
+      shell: bash -le {0}
+
+    - name: Build non-java11 Lambda Applicaition
+      if: env.buildInfo_buildtype  == 'lambda' && !(env.buildInfo_lang == 'java11') && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      working-directory: ${{ env.buildInfo_path }}
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+      run: |
+        echo 'start building package'
+        mvn clean package --batch-mode -ntp -s settings.xml
+        echo 'end building package'
+      shell: bash -le {0}
+
+    - name: Lambda Prepare Artifact
+      if: env.buildInfo_buildtype == 'lambda' && startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      working-directory: ${{ env.buildInfo_path }}
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+      run: |
+        pwd
+        find . -not -path "./.git/*"
+        rm target/original-*-0.1.0-SNAPSHOT.jar
+        cp target/*-0.1.0-SNAPSHOT.jar /tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.jar
+        find /tmp -name "*.jar"
+      shell: bash -le {0}
+      
+    - name: Lambda Upload Artifact
+      if: env.buildInfo_buildtype == 'lambda' && startsWith( env.buildInfo_lang, 'java' ) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}
+        path: /tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.jar
+
+    - name: Upload artifact
+      if: env.buildInfo_buildtype == 'docker' && ( startsWith( env.buildInfo_lang, 'java' ) || startsWith( env.buildInfo_lang, 'docker' ) || startsWith( env.buildInfo_lang, 'nodejs')) && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}
+        path: /tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.tar
+
+    - name: Docker Upload Artifact All Target Files with Root Path
+      if: env.buildInfo_buildtype == 'docker' && env.buildInfo_path == '.' && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: ${{ env.buildInfo_path }}/**/target/*
+
+    - name: Docker Upload Artifact All Target Files with Not Root Path
+      if: env.buildInfo_buildtype == 'docker' && env.buildInfo_path != '.' && env.DEGT-maven != 'true' && env.DEGT-ant != 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: ./${{ env.buildInfo_path }}/**/target/*

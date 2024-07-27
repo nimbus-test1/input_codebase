@@ -1,0 +1,54 @@
+# action.yaml
+name: Post Build Tasks
+description: Post build action
+inputs:
+  buildfile:
+    required: true
+    description: 'Pass in your build json text'
+  java_distribution:
+    required: true
+    description: 'Java Distribution for installation'
+  java_version:
+    required: true
+    description: 'Java Version for installation'
+  mvn_version:
+    required: true
+    description: 'Maven Version for installation'
+
+runs:
+  using: 'composite'
+  steps:
+    - run: |
+        echo "build file: ${{ inputs.buildfile }}"
+      shell: bash -l {0}
+      
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Run Groovy Script
+      if: ${{ (env.buildInfo_buildtype == 'lambda') || (env.buildInfo_buildtype == 'docker')}}
+      working-directory: .github/workflows
+      run: |
+        json_string=$(echo '${{ inputs.buildfile }}' | jq -c '.')
+        case "${{ env.buildInfo_buildtype }}" in
+            "lambda")
+            groovy -e "new ProjectGHA().afterBuild('$json_string')"
+            ;;
+            "docker")
+            groovy -e "new ProjectGHA().afterBuild('$json_string')"
+            ;;
+            *)
+            echo "No Post-build task for '${{ steps.get-json-value.outputs.buildtype }}'"
+            ;;
+        esac
+      shell: bash -l {0}

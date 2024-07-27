@@ -1,0 +1,194 @@
+# action.yaml
+name: Build Docker
+
+description: Build java app
+
+inputs:
+  artifactoryHostUrl:
+    description: 'string for jfrog artifactory host url'
+  buildfile:
+    required: true
+    description: 'Pass in your build json text'
+  java_distribution:
+    required: true
+    description: 'Java Distribution for installation'
+  java_version:
+    required: true
+    description: 'Java Version for installation'
+  mvn_version:
+    required: true
+    description: 'Maven Version for installation'
+  DIGITAL_JFROG_USERNAME:
+    required: true
+    description: 'jfrog username'
+  DIGITAL_JFROG_TOKEN:
+    required: true
+    description: 'jfrog token'
+
+runs:
+  using: composite
+  steps:
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+    
+    - name: Create Target DIR
+      if: env.buildInfo_buildtype == 'docker'
+      run: |
+        cd ./${{ env.buildInfo_path }}
+        mkdir -p target
+      shell: bash
+
+    - name: Download Java Artifact with Root Build Path
+      uses: actions/download-artifact@v2
+      if: env.buildInfo_buildtype == 'docker' && startsWith( env.buildInfo_lang, 'java' ) && env.buildInfo_path == '.'
+      with:
+        name: build-artifacts
+        path: ${{ env.buildInfo_path }}/target
+
+    - name: Download Java Artifact with Non-Root Build Path
+      uses: actions/download-artifact@v2
+      if: env.buildInfo_buildtype == 'docker' && startsWith( env.buildInfo_lang, 'java' ) && env.buildInfo_path != '.'
+      with:
+        name: build-artifacts
+        path: ./${{ env.buildInfo_path }}/target
+
+    - name: Copy contents of target to working dir
+      if: env.buildInfo_buildtype == 'docker' && env.buildInfo_lang != 'docker'
+      run: |
+        cd ./${{ env.buildInfo_path }}
+        cp -r target/* .
+      shell: bash
+
+    - name: Get Java Version from build info
+      if: startsWith( env.buildInfo_lang, 'java' )
+      run: |
+        echo "extracting Java Version from buildInfo_lang = ${{ env.buildInfo_lang }}"
+        DEFAULT_JAVA_VERSION=8
+        BUILD_LANG_VERSION=$(echo ${{ env.buildInfo_lang }} | tr -cd '[:digit:]')
+        if [[ $BUILD_LANG_VERSION ]]; then 
+          echo "java_version=$(echo $BUILD_LANG_VERSION)" >> "$GITHUB_ENV"
+        else
+          echo "java_version=$(echo $DEFAULT_JAVA_VERSION)" >> "$GITHUB_ENV"
+        fi
+      shell: bash -l {0}
+
+    - name: Install Java using env var
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: |
+          ${{ env.java_version }}
+
+    - name: Map Maven Version based on Java Version
+      if: startsWith( env.buildInfo_lang, 'java' )
+      run: |
+        echo "Mapping Maven Version to Java Version = ${{ env.java_version }}"
+        DEFAULT_MAVEN_VERSION=3.8.2
+        LATEST_MAVEN_VERSION=3.9.6
+        JAVA17_MAVEN_VERSION=3.8.8
+        if [[ ${{ env.java_version }} == 17 ]]; then 
+          echo "maven_version=$(echo $JAVA17_MAVEN_VERSION)" >> "$GITHUB_ENV"
+        elif [[ ${{ env.java_version }} > 17 ]]; then 
+          echo "maven_version=$(echo $LATEST_MAVEN_VERSION)" >> "$GITHUB_ENV"
+        else
+          echo "maven_version=$(echo $DEFAULT_MAVEN_VERSION)" >> "$GITHUB_ENV"
+        fi
+      shell: bash -l {0}
+      
+    - name: Install Maven
+      uses: stCarolas/setup-maven@v5
+      with:
+        maven-version: ${{ env.maven_version }}
+
+    - name: Verify java and maven installation
+      if: startsWith( env.buildInfo_lang, 'java' )
+      run: |
+        which java || true
+        which mvn || true
+        echo %JAVA_HOME%
+        echo $JAVA_HOME
+        java -version || true
+      shell: bash -l {0}
+    
+    - name: Maven settings
+      working-directory: ${{ env.buildInfo_path }}
+      continue-on-error: false
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        PYTHONUNBUFFERED: "1"
+      run: |
+        MAVEN_SCRIPTS_PATH=$(echo $(dirname ${GITHUB_ACTION_PATH})/maven_settings)
+        pip3 -q install -r ${MAVEN_SCRIPTS_PATH}/requirements.txt
+        python3 ${MAVEN_SCRIPTS_PATH}/maven_settings.py \
+          --settings ${MAVEN_SCRIPTS_PATH}/settings.xml \
+          --jfrog_user ${{ inputs.DIGITAL_JFROG_USERNAME }} \
+          --jfrog_token ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        cat ${MAVEN_SCRIPTS_PATH}/settings.xml
+        mv ${MAVEN_SCRIPTS_PATH}/settings.xml .
+      shell: bash
+
+    - name: Login to Artifactory Docker Registry
+      if: env.buildInfo_buildtype == 'docker' && ( startsWith( env.buildInfo_lang, 'java' ) || startsWith( env.buildInfo_lang, 'docker' ) || startsWith( env.buildInfo_lang, 'nodejs')) 
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ inputs.artifactoryHostUrl }}
+        username: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        password: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+
+    - name: Clean Docker Images
+      if: env.buildInfo_buildtype == 'docker'
+      run: |
+        cd ${{ env.buildInfo_path }}
+        docker rmi --no-prune vet-docker.${{ env.buildInfo_docker_artifactory_sharedtools_host_url }}/${{ env.buildInfo_jobname }}:${{ env.buildInfo_branch }}-latest || true
+        docker rmi --no-prune vet-docker.${{ env.buildInfo_docker_artifactory_sharedtools_host_url }}/${{ env.buildInfo_jobname }}:${{ env.buildInfo_branch }}-${{ env.buildInfo_version }} || true
+        docker rmi -f $(docker images | grep "vet-docker" | awk '{print $3}') || true
+        docker rmi -f $(docker images -q -f 'dangling=true') || true
+        docker images
+        echo "Artifactory Directory: ${{ env.buildInfo_artifactoryBuildRepo }}"
+      shell: bash
+
+    - name: Set up Docker Buildx
+      if: env.buildInfo_buildtype == 'docker' && ( startsWith( env.buildInfo_lang, 'java' ) || startsWith( env.buildInfo_lang, 'docker' ) || startsWith( env.buildInfo_lang, 'nodejs')) 
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build and tar images
+      if: env.buildInfo_buildtype == 'docker' && ( startsWith( env.buildInfo_lang, 'java' ) || startsWith( env.buildInfo_lang, 'docker' ) || startsWith( env.buildInfo_lang, 'nodejs'))
+      uses: docker/build-push-action@v4
+      env:
+        ARTIFACTORY_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+        DIGITAL_JFROG_USERNAME: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        DIGITAL_JFROG_TOKEN: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+      with:
+        context: ./${{ env.buildInfo_path }}
+        file: ./${{ env.buildInfo_path }}/Dockerfile
+        tags: |
+          ${{ inputs.artifactoryHostUrl }}/${{ env.buildInfo_artifactoryBuildRepo }}/${{ env.buildInfo_jobname }}:${{ env.buildInfo_branch }}-latest
+          ${{ inputs.artifactoryHostUrl }}/${{ env.buildInfo_artifactoryBuildRepo }}/${{ env.buildInfo_jobname }}:${{ env.buildInfo_branch }}-${{ env.buildInfo_version }}
+        outputs: type=docker,dest=/tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.tar
+
+    - name: List Docker Images
+      if: env.buildInfo_buildtype == 'docker' && ( startsWith( env.buildInfo_lang, 'java' ) || startsWith( env.buildInfo_lang, 'docker' ) || startsWith( env.buildInfo_lang, 'nodejs'))
+      run: |
+        tar -tvf /tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.tar
+      shell: bash
+
+    - name: Upload artifact
+      if: env.buildInfo_buildtype == 'docker' && ( startsWith( env.buildInfo_lang, 'java' ) || startsWith( env.buildInfo_lang, 'docker' ) || startsWith( env.buildInfo_lang, 'nodejs'))
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}
+        path: /tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.tar

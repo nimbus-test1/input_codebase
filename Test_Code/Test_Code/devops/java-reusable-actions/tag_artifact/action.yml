@@ -1,0 +1,49 @@
+# action.yaml
+name: 'Tag Deployment Artifact'
+description: 'This reusable github action can be used to tag CI artifact'
+inputs:
+  artifactoryHostUrl:
+    required: true
+    description: 'string for jfrog artifactory host url'
+  buildfile:
+    description: 'Pass in your build YAML'
+    required: true
+    default: ""
+  DIGITAL_JFROG_USERNAME:
+    required: true
+    description: 'jfrog username'
+  DIGITAL_JFROG_TOKEN:
+    required: true
+    description: 'jfrog token'
+
+outputs:
+  tmpBuilddata:
+    description: "return a string with build json"
+    value: ${{ steps.getBuildInfo.outputs.tmpBuilddata }}
+
+
+runs:
+  using: 'composite'
+  steps:
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Tag_Deployment_Artifact
+      id: getBuildInfo
+      run: |
+        wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py
+        python get-pip.py
+        pip -q install -r ${GITHUB_ACTION_PATH}/requirements.txt
+        python ${GITHUB_ACTION_PATH}/tag_deployment_artifact.py ${{ env.buildInfo_jobname }} ${{ env.buildInfo_branch }} ${{ env.buildInfo_version }} ${{ inputs.artifactoryHostUrl }} ${{ inputs.DIGITAL_JFROG_USERNAME }} ${{ inputs.DIGITAL_JFROG_TOKEN }} ${{ env.buildInfo_artifactoryDeploymentsRepo }}
+      shell: bash -l {0}
+

@@ -1,0 +1,50 @@
+# action.yaml
+name: Pre Build Tasks
+description: Pre build action
+inputs:
+  buildfile:
+    description: 'Pass in your build YAML'
+    required: true
+    default: ""
+  artifactoryHostUrl:
+    description: 'string for jfrog artifactory host url'
+    required: false
+    default: ".jfrog.io"
+  imageRepo:
+    description: "Image repository where the container images are hosted"
+    required: false
+    default: "digital-docker"
+
+outputs:
+  image:
+    description: "Return the container image name"
+    value: "${{ steps.set_image.outputs.container_image }}"
+runs:
+  using: 'composite'
+  steps:
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Set the container image
+      id: set_image
+      run: |
+        lang=${{ env.buildInfo_lang }}
+        image_name="${{ inputs.artifactoryHostUrl }}/${{ inputs.imageRepo }}/jdk"
+        image_tag="8"
+        if [[ $lang == *"java"* ]] && [[ "$lang" != "java" ]]; then
+          image_tag=$(echo $lang | sed 's/java//')
+        fi
+        container_image="${image_name}:${image_tag}"
+        echo "Setting the container image to $container_image"
+        echo "container_image=$container_image" >> "$GITHUB_OUTPUT"
+      shell: bash

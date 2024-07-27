@@ -1,0 +1,148 @@
+# action.yaml
+name: Pre Build Tasks
+description: Pre build action
+inputs:
+  buildfile:
+    description: 'Pass in your build YAML'
+    required: true
+    default: ""
+
+  DATADOG_API_KEY: 
+    description: 'Pass in your Datadog API Key'
+    required: true
+    default: ""
+  
+outputs:
+  java_distribution:
+    description: "Return the java distribution"
+    value: ${{ steps.buildInfo_java_distribution.outputs.buildInfo_java_distribution }}
+  java_version:
+    description: "Return the java version"
+    value: ${{ steps.buildInfo_java_version.outputs.buildInfo_java_version }}
+  mvn_version:
+    description: "Return the mvn version"
+    value: ${{ steps.buildInfo_mvn_version.outputs.buildInfo_mvn_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Java distribution
+      id: buildInfo_java_distribution
+      run: |
+        if [ -z "${{ env.buildInfo_java_distribution }}" ]
+        then
+          echo "buildInfo_java_distribution=zulu" >> $GITHUB_OUTPUT
+        else
+          echo "buildInfo_java_distribution=${{ env.buildInfo_java_distribution }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+    
+    - name: Java Version
+      id: buildInfo_java_version
+      if: startsWith( env.buildInfo_lang, 'java' )
+      run: |
+        if [ -z "${{ env.buildInfo_java_version }}" ]
+        then
+          case ${{env.buildInfo_lang}} in
+          java7)
+          echo "buildInfo_java_version=7.0.171" >> $GITHUB_OUTPUT
+          ;;
+          java9)
+          echo "buildInfo_java_version=9.0.4" >> $GITHUB_OUTPUT
+          ;;
+          java11)
+          echo "buildInfo_java_version=11.0.1+13" >> $GITHUB_OUTPUT
+          ;;
+          java17)
+          echo "buildInfo_java_version=17" >> $GITHUB_OUTPUT
+          ;;
+          *)
+          echo "buildInfo_java_version=8.0.172" >> $GITHUB_OUTPUT
+          ;;
+          esac
+        else
+          echo "buildInfo_java_version=${{ env.buildInfo_java_version }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Maven Version
+      id: buildInfo_mvn_version
+      run: |
+        if [ -z "${{ env.buildInfo_mvn_version }}" ]
+        then
+          case ${{env.buildInfo_lang}} in
+          java7)
+          echo "buildInfo_mvn_version=3.5.3" >> $GITHUB_OUTPUT
+          ;;
+          java9)
+          echo "buildInfo_mvn_version=3.5.3" >> $GITHUB_OUTPUT
+          ;;
+          java11)
+          echo "buildInfo_mvn_version=3.6.0" >> $GITHUB_OUTPUT
+          ;;
+          java17)
+          echo "buildInfo_mvn_version=3.8.3" >> $GITHUB_OUTPUT
+          ;;
+          *)
+          echo "buildInfo_mvn_version=3.5.3" >> $GITHUB_OUTPUT
+          ;;
+          esac
+        else
+          echo "buildInfo_mvn_version=${{ env.buildInfo_mvn_version }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Verify java and maven installation
+      if: startsWith( env.buildInfo_lang, 'java' )
+      run: |
+        which java
+        which mvn
+      shell: bash
+
+    - name: Run Ram Lint
+      if: ${{ (env.buildInfo_buildtype == 'mulecloudhub') || (env.buildInfo_buildtype == 'muleonprem')}}
+      run: |
+        case "${{ env.buildInfo_buildtype }}" in
+            "mulecloudhub")
+            ramllint .
+            ;;
+            "muleonprem")
+            ramllint .
+            ;;
+            *)
+            echo "No Pre-build task for '${{ env.buildInfo_buildtype }}'"
+            ;;
+        esac
+      shell: bash -l {0}
+
+    - name: Run Groovy Script
+      if: ${{ (env.buildInfo_buildtype == 'lambda') || (env.buildInfo_buildtype == 'docker')}}
+      working-directory: .github/workflows
+      run: |
+        json_string=$(echo '${{ inputs.buildfile }}' | jq -c '.')
+        case "${{ env.buildInfo_buildtype }}" in
+            "lambda")
+            groovy -e "new ProjectGHA().beforeBuild('$json_string')"
+            ;;
+            "docker")
+            echo ${{ inputs.buildfile }}
+            groovy -e "new ProjectGHA().beforeBuild('$json_string')"
+            ;;
+            *)
+            echo "No Pre-build task for '${{ steps.get-json-value.outputs.buildtype }}'"
+            ;;
+        esac
+      shell: bash -l {0}

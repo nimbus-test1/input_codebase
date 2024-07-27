@@ -1,0 +1,22 @@
+name: Infrastructure CI 
+
+on: 
+  workflow_dispatch:
+  
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'feature/**'
+      - 'bugfix/**'
+      - 'hotfix/**'
+  
+jobs:    
+
+# Required CI Workflow
+  Required_CI_Steps:
+    uses: test-org/ci-actions-java/.github/workflows/javaReusableWorkflow.yml@main
+    secrets: inherit
+
+# Capabilites can add custom actions below

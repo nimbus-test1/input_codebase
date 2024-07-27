@@ -1,0 +1,76 @@
+# action.yaml
+name: Create Deployment Package
+
+description: Create Deployment Package Action
+
+inputs:
+  artifactoryHostUrl:
+    required: true
+    description: 'string for jfrog artifactory host url'
+  buildfile:
+    required: true
+    description: 'Pass in your build json text'
+  DIGITAL_JFROG_USERNAME:
+    required: true
+    description: 'jfrog username'
+  DIGITAL_JFROG_TOKEN:
+    required: true
+    description: 'jfrog token'
+  semanticVersion:
+    required: false
+    description: 'semantic versioning'
+
+runs:
+  using: composite
+  steps:
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Get Build Version, check if Semantic Version was provided as an input
+      id: getBuildVersion
+      run: |
+        echo "Getting Build Version"
+        if [[ -n "${{ inputs.semanticVersion}}" ]]; then
+          echo "Using provided Semantic Version: ${{ inputs.semanticVersion}}"
+          echo "version=${{ inputs.semanticVersion}}" >> $GITHUB_OUTPUT
+          echo "version=${{ inputs.semanticVersion}}" >> $GITHUB_ENV
+        else
+          echo "Using buildInfo_version: ${{ env.buildInfo_version }}"
+          echo "version=${{ env.buildInfo_version }}" >> $GITHUB_OUTPUT
+          echo "version=${{ env.buildInfo_version }}" >> $GITHUB_ENV
+        fi
+      shell: bash -le {0}
+
+    - name: push workflow files
+      id: create_deployment_tag_python
+      working-directory: "${{ env.buildInfo_basepath }}/${{ env.buildInfo_path }}"
+      env: 
+        PYTHONUNBUFFERED: "1"
+      run: |
+        wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py
+        python get-pip.py
+        pip -q install -r ${GITHUB_ACTION_PATH}/requirements.txt
+        python ${GITHUB_ACTION_PATH}/create_deployment_tag.py
+      shell: bash -le {0}
+
+    - name: JFROG CLI
+      uses: jfrog/setup-jfrog-cli@v3
+    - run: |
+        cd ${{ env.buildInfo_path }}
+        ARTIFACT=$(find . -name ${{ env.buildInfo_jobname }}.zip)
+        echo "location of artifact is: $ARTIFACT"
+        jf c add _jfrog_io --url="https://${{ inputs.artifactoryHostUrl }}" --user=${{ inputs.DIGITAL_JFROG_USERNAME }} --password=${{ inputs.DIGITAL_JFROG_TOKEN }} --basic-auth-only --overwrite --enc-password=false --interactive=false
+        jf rt ping --server-id _jfrog_io
+        echo ${{ env.buildInfo_artifactoryDeploymentsRepo }}/${{ env.buildInfo_jobname }}\/${{ env.buildInfo_branch }}\/${{ steps.getBuildVersion.outputs.version }}\/
+        jf rt u --server-id _jfrog_io $ARTIFACT "${{ env.buildInfo_artifactoryDeploymentsRepo }}/${{ env.buildInfo_jobname }}\/${{ env.buildInfo_branch }}\/${{ steps.getBuildVersion.outputs.version }}\/" --flat=false --recursive
+      shell: bash -le {0}

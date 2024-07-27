@@ -1,0 +1,186 @@
+# action.yaml
+name: Publish Artifact
+
+description: Publish image to artifactory action
+
+inputs:
+  artifactoryHostUrl:
+    required: true
+    description: 'string for jfrog artifactory host url'
+  buildfile:
+    required: true
+    description: 'Pass in your build json text'
+  DIGITAL_JFROG_USERNAME:
+    required: true
+    description: 'jfrog username'
+  DIGITAL_JFROG_TOKEN:
+    required: true
+    description: 'jfrog token'
+  semanticVersion:
+    required: false
+    description: 'semantic versioning'
+
+runs:
+  using: composite
+  steps:
+    - run: |
+        echo "build file: ${{ inputs.buildfile }}"
+      shell: bash
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "buildInfo.json"
+        json: ${{ inputs.buildfile }}
+
+    - name: JSON to variables
+      uses: antifree/json-to-variables@v1.2.0
+      with:
+        filename: 'buildInfo.json'
+        prefix: buildInfo
+
+    - name: Setup Java and Maven Action
+      uses: s4u/setup-maven-action@v1.13.0
+      with:
+        java-distribution: zulu
+        java-version: 11.0.1+13
+        maven-version: 3.6.0
+        cache-path: ~/.m2
+
+    - name: Install Groovy
+      run: |
+        pwd
+        wget -q "https://groovy.jfrog.io/ui/api/v1/download?repoKey=dist-release-local&path=groovy-zips%252Fapache-groovy-binary-4.0.0.zip&isNativeBrowsing=true" -O groovy.zip
+        unzip -qo groovy.zip -d ~
+        echo 'export GROOVY_HOME=~/groovy-4.0.0' >> ~/.bashrcsource ~/.bashrc
+        echo 'export PATH=$PATH:$GROOVY_HOME/bin' >> ~/.bashrcsource ~/.bashrc
+        rm groovy.zip
+      shell: bash
+
+    - name: Run beforePush Groovy Script
+      working-directory: .github/workflows
+      run: |
+        case "${{ env.buildInfo_buildtype }}" in
+          "lambda")
+          ~/groovy-4.0.0/bin/groovy -e "new ProjectGHA().beforePush()"
+          ;;
+          "docker")
+          ~/groovy-4.0.0/bin/groovy -e "new ProjectGHA().beforePush()"
+          ;;
+          *)
+          echo "No Pre-build task for '${{ env.buildInfo_path }}'"
+          ;;
+        esac
+      shell: bash
+
+    - name: Login to JFrog SaaS Artifactory Docker Registry
+      if: env.buildInfo_buildtype == 'docker'
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ inputs.artifactoryHostUrl }}
+        username: ${{ inputs.DIGITAL_JFROG_USERNAME }}
+        password: ${{ inputs.DIGITAL_JFROG_TOKEN }}
+
+    - name: Determine if there is any index
+      run: |
+        echo "Checking environment variable index is present"
+        if [[ -n "${{ env.buildInfo_index }}"  ]]; then
+          echo "With index"
+          artifact_suffix=${{ env.buildInfo_branch }}-${{ env.buildInfo_index }}
+          echo "artifact_suffix=${{ env.buildInfo_branch }}-${{ env.buildInfo_index }}" >> $GITHUB_ENV
+          index=${{ env.buildInfo_index }}
+          echo "index=${{ env.buildInfo_index }}" >> $GITHUB_ENV
+        else
+          echo "Without index"
+          artifact_suffix=${{ env.buildInfo_branch }}
+          echo "artifact_suffix=${{ env.buildInfo_branch }}" >> $GITHUB_ENV
+          index=NA
+          echo "index=NA" >> $GITHUB_ENV
+        fi
+        echo "artifact_suffix is set to: ${artifact_suffix}"
+        echo "index is set to: ${index}"
+      shell: bash
+
+    - name: Download artifact
+      if: env.buildInfo_buildtype == 'docker' || env.buildInfo_buildtype == 'lambda'
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.buildInfo_jobname }}-${{ env.artifact_suffix }}
+
+    - name: Load Docker image
+      if: env.buildInfo_buildtype == 'docker'
+      run: |
+        docker load --input ./${{ env.buildInfo_jobname }}-${{ env.artifact_suffix }}.tar
+        docker images
+        echo "Artifactory Build Directory: ${{ env.buildInfo_artifactoryBuildRepo }}"
+        echo "Artifactory Deployments Directory: ${{ env.buildInfo_artifactoryDeploymentsRepo }}"
+      shell: bash
+
+    - name: Get Build Version, check if Semantic Version was provided as an input
+      id: getBuildVersion
+      run: |
+        echo "Getting Build Version"
+        if [[ -n "${{ inputs.semanticVersion }}" ]]; then
+          echo "Using provided Semantic Version: ${{ inputs.semanticVersion}}"
+          echo "version=${{ inputs.semanticVersion}}" >> $GITHUB_ENV
+        else
+          echo "Using buildInfo_version: ${{ env.buildInfo_version }}"
+          echo "version=${{ env.buildInfo_version }}" >> $GITHUB_ENV
+        fi
+      shell: bash
+
+    - name: Publish Artifact
+      id: publish_artifact
+      run: |
+        pip3 install requests
+        python3 ${GITHUB_ACTION_PATH}/publish_artifact.py \
+        --lambda_artifact_url ${{ env.buildInfo_jfrogbuildArtifact_lambda || 'none' }} \
+        --job_name  ${{ env.buildInfo_jobname }} \
+        --branch_name ${{ env.buildInfo_branch }} \
+        --artifact_index ${{ env.index }} \
+        --build_lang ${{ env.buildInfo_lang }} \
+        --build_type ${{ env.buildInfo_buildtype }} \
+        --build_version ${{ env.version }} \
+        --jfrog_url ${{ inputs.artifactoryHostUrl }} \
+        --jfrog_user ${{ inputs.DIGITAL_JFROG_USERNAME }} \
+        --jfrog_token ${{ inputs.DIGITAL_JFROG_TOKEN }} \
+        --jfrog_repo_dir ${{ env.buildInfo_artifactoryBuildRepo }} \
+        --info_path ${{ env.buildInfo_path }}
+      shell: bash
+
+    - name: Download artifact
+      if: (env.buildInfo_buildtype == 'lambda' && env.buildInfo_lang == 'dotnet') || (env.buildInfo_buildtype == 'lambda' && startsWith( env.buildInfo_lang, 'java' ))
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.buildInfo_jobname }}-${{ env.artifact_suffix }}
+
+    - name: Publish Dotnet Lambda Artifact
+      if: (env.buildInfo_buildtype == 'lambda' && env.buildInfo_lang == 'dotnet') ## || (env.buildInfo_buildtype == 'lambda' && startsWith( env.buildInfo_lang, 'java' ))
+      run: |
+        pwd
+        ls -la
+        md5checksum=$(md5sum ./${{ env.buildInfo_jobname }}-${{ env.artifact_suffix }}.zip |awk '{print $1}')
+        sha1checksum=$(sha1sum ./${{ env.buildInfo_jobname }}-${{ env.artifact_suffix }}.zip |awk '{print $1}')
+        curl -L --fail -u ${{ inputs.DIGITAL_JFROG_USERNAME }}:${{ inputs.DIGITAL_JFROG_TOKEN }} \
+          --header "X-Checksum-MD5:${md5checksum}" \
+          --header "X-Checksum-Sha1:${sha1checksum}" \
+          https://${{ inputs.artifactoryHostUrl }}/artifactory/digital-lambdas/${{ env.buildInfo_jobname }}/${{ env.buildInfo_branch }}/${{ env.buildInfo_version }}/${{ env.buildInfo_jobname }}-${buildInfo_name,,}.zip \
+          -T ./${{ env.buildInfo_jobname }}-${{ env.artifact_suffix }}.zip
+        echo "buildInfo_build_artifact=https://${{ inputs.artifactoryHostUrl }}/artifactory/digital-lambdas/${{ env.buildInfo_jobname }}/${{ env.buildInfo_branch }}/${{ env.buildInfo_version }}/${{ env.buildInfo_jobname }}-${buildInfo_name,,}.zip}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Run afterPush Groovy Script
+      working-directory: .github/workflows
+      run: |
+        case "${{ env.buildInfo_buildtype }}" in
+          "lambda")
+          ~/groovy-4.0.0/bin/groovy -e "new ProjectGHA().afterPush()"
+          ;;
+          "docker")
+          ~/groovy-4.0.0/bin/groovy -e "new ProjectGHA().afterPush()"
+          ;;
+          *)
+          echo "No Publish Artifact task for '${{ env.buildInfo_path }}'"
+          ;;
+        esac
+      shell: bash

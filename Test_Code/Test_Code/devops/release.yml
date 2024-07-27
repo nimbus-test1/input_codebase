@@ -1,0 +1,44 @@
+---
+name: release-please
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Generate token for release-please
+        uses: actions/create-github-app-token@v1
+        id: release-token
+        with:
+            app-id: 874868
+            private-key: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
+            owner: "test-org"
+
+      - uses: google-github-actions/release-please-action@v4.1.1
+        id: release
+        with:
+          token: ${{ steps.release-token.outputs.token }}
+
+      - uses: actions/checkout@v4
+
+      - name: tag major and minor versions
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git remote add gh-token "https://${{ steps.release-token.outputs.token }}@github.com/google-github-actions/release-please-action.git"
+          git tag -d v${{ steps.release.outputs.major }} || true
+          git tag -d v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }} || true
+          git push origin :v${{ steps.release.outputs.major }} || true
+          git push origin :v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }} || true
+          git tag -a v${{ steps.release.outputs.major }} -m "Release v${{ steps.release.outputs.major }}"
+          git tag -a v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }} -m "Release v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}"
+          git push origin v${{ steps.release.outputs.major }}
+          git push origin v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}

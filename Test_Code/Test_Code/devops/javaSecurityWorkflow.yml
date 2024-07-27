@@ -1,0 +1,192 @@
+name: Java Security workflow
+on:
+  workflow_call:
+    inputs:
+      buildfile:
+        required: true
+        type: string
+      semanticVersion:
+        required: false
+        type: string
+        default: ''
+      sonarHostUrl: 
+        required: false
+        type: string
+        default: "https://sonarqube.test.com"
+      webhook_url:
+        description: provide Webhook Url
+        required: false
+        type: string
+    outputs:
+      jfrog_security_scan_policy:
+        value: ${{ jobs.Jfrog_Scan_Xray.outputs.watch || ''}}
+      jfrog_security_scan_url: 
+        value: ${{ jobs.Jfrog_Scan_Xray.outputs.scan_url || ''}}
+      jfrog_security_scan_violations: 
+        value: ${{ jobs.Jfrog_Scan_Xray.outputs.violations || ''}}
+      sonarqube_url:
+        value: ${{ jobs.Sonarqube_Enterprise.outputs.sonarqube_url || '' }}
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+        
+jobs:
+
+  Configure_Security_Scans:
+    runs-on: [scalable,Linux,shadowmode]
+    name: Configure Security Scans
+    container:
+      image: test.jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    outputs:
+        buildtype: ${{ steps.build-type.outputs.buildtype }}
+        reponame: ${{ steps.repo-name.outputs.reponame }}
+    steps:
+      - name: Get Build Type
+        id: build-type
+        run: |
+          BUILD_TYPE=$(echo '${{ inputs.buildfile }}' | jq -r '.buildtype')
+          echo $BUILD_TYPE
+          echo "buildtype=${BUILD_TYPE}" >> $GITHUB_OUTPUT
+      - name: Get Repo Name
+        id: repo-name
+        run: |
+          REPO_NAME=$(echo '${{ inputs.buildfile }}' | jq -r '.repoName')
+          echo $REPO_NAME
+          echo "reponame=${REPO_NAME}" >> $GITHUB_OUTPUT
+
+  # JFrog Xray is currently for "docker" buildtype scanning only.   
+  Jfrog_Scan_Xray:
+    needs: [Configure_Security_Scans]
+    if: ${{ contains(needs.Configure_Security_Scans.outputs.buildtype, 'docker') || contains(needs.Configure_Security_Scans.outputs.buildtype, 'lambda') }}
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: test.jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    outputs:
+      jfrog_security_scan_policy: ${{ steps.jfrog_scan.outputs.watch || '' }}
+      jfrog_security_scan_url: ${{ steps.jfrog_scan.outputs.scan_url || '' }}
+      jfrog_security_scan_violations: ${{ steps.jfrog_scan.outputs.violations || '' }}
+    name: Jfrog Scan Xray
+    steps:
+      - run: |
+          echo "build file: ${{ inputs.buildfile }}"
+
+      - name: create-json
+        id: create-json
+        uses: jsdaniell/create-json@v1.2.3
+        with:
+          name: "buildInfo.json"
+          json: ${{ inputs.buildfile }}
+
+      - name: JSON to variables
+        uses: antifree/json-to-variables@v1.2.0
+        with:
+          filename: 'buildInfo.json'
+          prefix: buildInfo
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}
+
+      - name: Load Docker image
+        if: ${{ (!env.ACT) && (env.buildInfo_buildtype == 'docker') }}
+        run: |
+          docker load --input ./${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.tar
+          docker images
+
+      - name: Get Build Version, check if Semantic Version was provided as an input
+        id: getBuildVersion
+        run: |
+          echo "Getting Build Version"
+          if [[ -n "${{ inputs.semanticVersion }}" ]]; then
+            echo "Using provided Semantic Version: ${{ inputs.semanticVersion}}"
+            echo "new_version=${{ inputs.semanticVersion}}" >> $GITHUB_ENV
+          else
+            echo "Using buildInfo_version: ${{ env.buildInfo_version }}"
+            echo "new_version=${{ env.buildInfo_version }}" >> $GITHUB_ENV
+          fi
+        shell: bash
+    
+      - name: Scan Docker image
+        if: ${{ (!env.ACT) && (env.buildInfo_buildtype == 'docker') }}
+        uses: test-org/jfrog-scan-action@v2.2.0
+        id: jfrog_scan
+        with:
+          image: "test.jfrog.io/${{ env.buildInfo_artifactoryBuildRepo }}/${{ env.buildInfo_jobname }}:${{ env.buildInfo_branch }}-${{ env.new_version }}"
+
+      - name: Scan Lambda
+        if: ${{ (!env.ACT) && (env.buildInfo_buildtype == 'lambda') }}
+        uses: test-org/jfrog-scan-action@v2.2.0
+        id: jfrog_scan_lambda
+        with:
+          file: "/tmp/${{ env.buildInfo_jobname }}-${{ env.buildInfo_branch }}.jar"
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Sonarqube_Enterprise:
+    needs: [Configure_Security_Scans]
+    runs-on: [scalable,Linux,shadowmode]
+    outputs:
+      sonarqube_url: ${{ steps.sonarscan.outputs.sonarqube_url }}
+    container:
+      image: test.jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    name: Sonarqube Scanning
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Run Sonar Scan For Java
+        id: sonarscan
+        uses: test-org/sonarqube-java-action@v1.0.2
+        with:
+          HOST_URL: ${{ inputs.sonarHostUrl }}
+          TOKEN: ${{ secrets.DIGITAL_ENT_SONAR_TOKEN }}
+          projectKey: test-${{ github.event.repository.name }}
+          projectName: ${{github.event.repository.name}}
+          branchName: ${{github.ref_name}}
+          buildfile: ${{ inputs.buildfile }}
+          DIGITAL_JFROG_USERNAME: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+          DIGITAL_JFROG_TOKEN: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+          semanticVersion: ${{ inputs.semanticVersion }}
+        env:
+          AWS_ACCESS_KEY_ID: "DummyAccessKey"
+          AWS_SECRET_ACCESS_KEY: "DummySecretAccess"
+          AWS_REGION: 'us-east-1'
+      
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true

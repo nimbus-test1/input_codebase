@@ -1,0 +1,378 @@
+name: JAVA CI
+on:
+  workflow_call:
+    inputs:
+      SONAR_HOST_URL:
+        required: false
+        type: string
+        default: "https://sonarqube..com"
+      webhook_url:
+        description: provide Webhook Url
+        required: false
+        type: string
+
+jobs:
+
+  Git_Pull:
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    env:
+      GIT_CONTEXT: ${{ toJson(github) }}
+    outputs:
+      buildInfo: ${{ steps.getBuildInfo.outputs.buildInfo }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Inputs
+        run: |
+          echo "Project Name: ${{ github.event.repository.name }}"
+          echo "Project Key: test-${{ github.event.repository.name }}"
+          echo "Branch Name: ${{ github.ref_name }}"
+
+      - name: Git Pull Action
+        uses: test-org/ci-actions-java/java-reusable-actions/git_pull@v3
+        id: getBuildInfo
+        with:
+          buildfile: $GIT_CONTEXT
+
+      - name: Print preBuildInfo
+        run: |
+          echo "${{ steps.getBuildInfo.outputs.buildInfo }}"
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Pre_Build_Tasks:
+    needs: [Git_Pull]
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    outputs:
+      java_distribution: ${{ steps.prebuildInfo.outputs.java_distribution }}
+      java_version: ${{ steps.prebuildInfo.outputs.java_version }}
+      mvn_version: ${{ steps.prebuildInfo.outputs.mvn_version }}
+      image: ${{ steps.setImage.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prebuild Action
+        uses: test-org/ci-actions-java/java-reusable-actions/prebuild@v3
+        id: prebuildInfo
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+
+      - name: Add datadog tags
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_SITE: ${{ vars.DIGITAL_DATADOG_MONITORING_URI_CI }}
+        run: |
+          capability_name=`echo ${{ github.event.repository.name }} | cut -d "-" -f 1`
+          echo "Creating capability specific tag on team:$capability_name"
+          datadog-ci tag --level pipeline --tags team:$capability_name
+
+      - name: Container Selection Step
+        uses: test-org/ci-actions-java/java-reusable-actions/container_selection@v3
+        id: setImage
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          artifactoryHostUrl: .jfrog.io
+          
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Build:
+    needs: [Git_Pull,Pre_Build_Tasks]
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: ${{ needs.Pre_Build_Tasks.outputs.image }}
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    steps:
+      - name: Log Image
+        run: |
+          echo ${{ needs.Pre_Build_Tasks.outputs.image }}
+          mvn -v
+        shell: bash -l {0}
+        
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Build Java Application
+        uses: test-org/ci-actions-java/java-reusable-actions/build_java@v3
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          java_distribution: ${{ needs.Pre_Build_Tasks.outputs.java_distribution }}
+          java_version: ${{ needs.Pre_Build_Tasks.outputs.java_version }}
+          mvn_version: ${{ needs.Pre_Build_Tasks.outputs.mvn_version }}
+          artifactoryHostUrl: ${{ vars.DIGITAL_GHA_ARTIFACTORY_JFROG_HOST_URL }}
+          DIGITAL_JFROG_USERNAME: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+          DIGITAL_JFROG_TOKEN: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+        env:
+          AWS_ACCESS_KEY_ID: "DummyAccessKey"
+          AWS_SECRET_ACCESS_KEY: "DummySecretAccess"
+          AWS_REGION: 'us-east-1'
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+          
+  Unit_Tests:
+    needs: [Git_Pull,Pre_Build_Tasks,Build]
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Unit Test Java Application
+        uses: test-org/ci-actions-java/java-reusable-actions/unit_test@v3
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+        env:
+          AWS_ACCESS_KEY_ID: "DummyAccessKey"
+          AWS_SECRET_ACCESS_KEY: "DummySecretAccess"
+          AWS_REGION: 'us-east-1'
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+        
+  Security_Scan:
+    needs: [Git_Pull,Pre_Build_Tasks,Build,Unit_Tests]
+    uses: test-org/ci-actions-java/.github/workflows/javaSecurityWorkflow.yml@v3
+    with:
+      buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+      sonarHostUrl: ${{ inputs.SONAR_HOST_URL }}
+    secrets: inherit
+          
+  Post_Build_Tasks:
+    needs: [Git_Pull,Pre_Build_Tasks,Security_Scan]
+    runs-on: [scalable,Linux,shadowmode]
+    # if: "!startsWith(github.ref, 'refs/heads/feature/')" 
+    env:
+      BUILD_CONFIG: ${{ needs.Git_Pull.outputs.buildInfo }}
+    outputs:
+      buildConfig: ${{ steps.outputBuildInfo.outputs.buildInfo }}
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        
+      - name: Post Build Tasks
+        uses: test-org/ci-actions-java/java-reusable-actions/postbuild@v3
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          java_distribution: ${{ needs.Pre_Build_Tasks.outputs.java_distribution }}
+          java_version: ${{ needs.Pre_Build_Tasks.outputs.java_version }}
+          mvn_version: ${{ needs.Pre_Build_Tasks.outputs.mvn_version }}
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Publish_Artifacts:
+    needs: [Git_Pull,Pre_Build_Tasks,Security_Scan]
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    # if: "!startsWith(github.ref, 'refs/heads/feature/')"
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      
+      - name: Publish Artifact
+        uses: test-org/ci-actions-publish-artifacts@v1
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          artifactoryHostUrl: ${{ vars.DIGITAL_GHA_ARTIFACTORY_JFROG_HOST_URL }}
+          DIGITAL_JFROG_USERNAME: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+          DIGITAL_JFROG_TOKEN: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Create_Deployment_Package:
+    needs: [Git_Pull,Publish_Artifacts,Post_Build_Tasks]
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Create Deployment Package
+        uses: test-org/ci-actions-create-deployment-package@v1
+        with:
+            buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+            ARTIFACTORY_SHAREDTOOLS_HOST_URL: ${{ vars.DIGITAL_GHA_ARTIFACTORY_SHAREDTOOLS_HOST_URL }}
+            artifactoryHostUrl: ${{ vars.DIGITAL_GHA_ARTIFACTORY_JFROG_HOST_URL }}
+            DIGITAL_GHA_ARTIFACTORY_USERNAME: ${{ secrets.DIGITAL_GHA_ARTIFACTORY_USERNAME }}
+            DIGITAL_GHA_ARTIFACTORY_TOKEN: ${{ secrets.DIGITAL_GHA_ARTIFACTORY_TOKEN }}
+            DIGITAL_JFROG_USERNAME: ${{ secrets.DIGITAL_JFROG_USERNAME }}
+            DIGITAL_JFROG_TOKEN: ${{ secrets.DIGITAL_JFROG_TOKEN }}
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Tag_Deployment_Artifact:
+    needs: [Git_Pull,Create_Deployment_Package]
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    env:
+      GIT_CONTEXT: ${{ toJson(github) }}
+    outputs:
+      artifact_path: ${{ steps.getBuildInfo2.outputs.artifact_path }}
+      properties: ${{ steps.getBuildInfo2.outputs.properties }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Tag Deployment Action
+        uses: test-org/ci-actions-java/java-reusable-actions/tag_artifact@v3
+        id: getBuildInfo2
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          ARTIFACTORY_SHAREDTOOLS_HOST_URL: ${{ vars.DIGITAL_GHA_ARTIFACTORY_SHAREDTOOLS_HOST_URL }}
+          artifactoryHostUrl: ${{ vars.DIGITAL_GHA_ARTIFACTORY_JFROG_HOST_URL }}
+          DIGITAL_GHA_ARTIFACTORY_USERNAME: ${{ secrets.DIGITAL_GHA_ARTIFACTORY_USERNAME }}
+          DIGITAL_GHA_ARTIFACTORY_TOKEN: ${{ secrets.DIGITAL_GHA_ARTIFACTORY_TOKEN }}
+          DIGITAL_JFROG_USERNAME: ${{ secrets.DIGITAL_JFROG_USERNAME }}
+          DIGITAL_JFROG_TOKEN: ${{ secrets.DIGITAL_JFROG_TOKEN }}
+
+      - name: Validate Artifact_Path & URL_Properties
+        env:
+          artifactPath: ${{ env.artifactPath }}
+          properties: ${{ env.properties }}
+        run: |
+          echo "$artifactPath"
+          echo "$properties"
+
+      - name: Microsoft Teams Notification
+        continue-on-error: true
+        uses: jdcargile/ms-teams-notification@v1.4
+        if: ${{ inputs.webhook_url && failure() && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ inputs.webhook_url }}
+          notification-summary: Workflow Failed
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
+
+  Send_Dora_Metrics:
+    needs: [Tag_Deployment_Artifact, Git_Pull]
+    if: always()
+    runs-on: [scalable,Linux,shadowmode]
+    container:
+      image: .jfrog.io/digital-docker/test-org/test-runner:v1.4.0
+      credentials:
+        username: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_USERNAME }}
+        password: ${{ secrets.DIGITAL_GHA_JFROG_SAAS_ARTIFACTORY_TOKEN }}
+      options: --user root
+    name: Send Dora Metrics
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dora Metrics Action
+        uses: test-org/ci-actions-common/common-reusable-actions/send_dora_metrics@v3
+        continue-on-error: true
+        id: getBuildInfo
+        with:
+          buildfile: ${{ needs.Git_Pull.outputs.buildInfo }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_SITE: ${{ vars.DIGITAL_DATADOG_MONITORING_URI_CI }} 
