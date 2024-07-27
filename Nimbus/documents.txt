@@ -1,0 +1,28 @@
+
+Notes or documentation content
+1. Create a new directory for your Terraform project and navigate into it.
+   ```bash
+   mkdir terraform-aws-web-server
+   cd terraform-aws-web-server
+   ```
+
+2. Create a Terraform configuration file, for example `main.tf`, and paste the Terraform configuration content provided above.
+
+3. Initialize Terraform to download the required providers.
+   ```bash
+   terraform init
+   ```
+
+4. Create a `terraform.tfvars` file to define the value of the `key_name` variable.
+   ```hcl
+   key_name = "your-key-pair-name"
+   ```
+
+5. Apply the Terraform configuration to provision the resources.
+   ```bash
+   terraform apply
+   ```
+
+6. Confirm the apply step by typing `yes` when prompted.
+
+7. Once the provisioning is complete, you can access the web server using the Elastic IP assigned to it. You can find the Elastic IP in the Terraform output or in the AWS Management Console.
