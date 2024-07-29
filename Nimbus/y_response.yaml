@@ -1,0 +1,32 @@
+```yaml
+# YAML configuration content
+version: '2.0'
+
+resources:
+  - name: web_server
+    type: AWS::EC2::Instance
+    properties:
+      ImageId: ami-0c55b159cbfafe1f0
+      InstanceType: t2.micro
+      KeyName: my-key-pair
+      SecurityGroups:
+        - WebServerSG
+      ElasticIP: true
+      Tags:
+        - Key: Name
+          Value: WebServer
+
+  - name: WebServerSG
+    type: AWS::EC2::SecurityGroup
+    properties:
+      GroupDescription: Enable HTTP and SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+```
