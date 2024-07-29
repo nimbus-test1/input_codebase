@@ -1,0 +1,47 @@
+
+# Documentation
+
+## Steps to use the files:
+
+1. **YAML Configuration**:
+    - This YAML configuration describes the setup for an AWS EC2 instance that will run on Ubuntu, allowing HTTP and SSH traffic, and attaching an Elastic IP.
+    - Save the YAML configuration content in a file named `aws_web_server.yml`.
+
+2. **Terraform Configuration**:
+    - This HCL (HashiCorp Configuration Language) script sets up the same AWS EC2 instance, security group, and Elastic IP.
+    - Save the HCL configuration content in a file named `main.tf`.
+
+3. **Deploying the Resources**:
+    - **Using YAML**:
+        1. Ensure you have the AWS CLI and necessary permissions configured.
+        2. Run the following command to deploy the resources defined in the `aws_web_server.yml` file:
+           ```bash
+           aws cloudformation create-stack --stack-name my-web-server-stack --template-body file://aws_web_server.yml
+           ```
+
+    - **Using Terraform**:
+        1. Ensure you have Terraform installed and configured.
+        2. Initialize the Terraform configuration:
+           ```bash
+           terraform init
+           ```
+        3. Apply the Terraform configuration:
+           ```bash
+           terraform apply
+           ```
+        4. Confirm the apply step by typing `yes` when prompted.
+
+4. **Accessing the Web Server**:
+    - Once the resources are deployed, you can access your web server via its Elastic IP address, which will be assigned and available in your AWS console or output by Terraform.
+
+5. **Cleanup**:
+    - To remove the stack using AWS CLI, run:
+      ```bash
+      aws cloudformation delete-stack --stack-name my-web-server-stack
+      ```
+    - To destroy the resources using Terraform, run:
+      ```bash
+      terraform destroy
+      ```
+      Confirm the destroy step by typing `yes` when prompted.
+```
