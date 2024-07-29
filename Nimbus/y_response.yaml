@@ -1,4 +1,3 @@
-web_server.yaml
 ```yaml
 web_server:
   ami: "ami-0d5eff06f840b45e9" # Ubuntu 20.04 LTS AMI ID for us-east-1
