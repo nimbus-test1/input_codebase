@@ -1,0 +1,15 @@
+```yaml
+apiVersion: v1
+kind: Config
+metadata:
+  name: mysql-backup-config
+spec:
+  schedule: "0 2 * * *"
+  backupRetentionPeriod: 7
+  storage:
+    type: s3
+    bucket: my-mysql-backups
+    prefix: mysql-backup/
+  notification:
+    email: admin@example.com
+```
