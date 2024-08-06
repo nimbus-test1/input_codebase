@@ -1,0 +1,8 @@
+
+1. Ensure you have AWS credentials configured on your local machine or environment.
+2. Save the YAML configuration content to a file named `mysql-config.yaml`.
+3. Apply the ConfigMap to your Kubernetes cluster using `kubectl apply -f mysql-config.yaml`.
+4. Save the Terraform configuration content to a file named `main.tf`.
+5. Initialize your Terraform workspace with `terraform init`.
+6. Apply the Terraform configuration with `terraform apply`.
+7. Once the Terraform apply is successful, your MySQL instance will be running, and the endpoint will be outputted for use.
