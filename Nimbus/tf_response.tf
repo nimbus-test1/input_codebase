@@ -1,82 +1,52 @@
 
+```hcl
 provider "aws" {
-  region = "us-west-2"
+  region = var.aws_region
 }
 
-resource "aws_instance" "web" {
-  ami           = "ami-0c55b159cbfafe1f0" # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
-  instance_type = "t2.micro"
-  key_name      = var.key_name
+resource "aws_db_instance" "mysql" {
+  allocated_storage    = 20
+  storage_type         = "gp2"
+  engine               = "mysql"
+  engine_version       = "5.7"
+  instance_class       = "db.t2.micro"
+  name                 = var.db_name
+  username             = var.db_username
+  password             = var.db_password
+  parameter_group_name = "default.mysql5.7"
+  skip_final_snapshot  = true
 
-  network_interface {
-    network_interface_id = aws_network_interface.web.id
-    device_index         = 0
-  }
-
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y apache2
-              systemctl start apache2
-              systemctl enable apache2
-              EOF
-
-  tags = {
-    Name = "WebServer"
-  }
+  backup_window             = var.backup_window
+  backup_retention_period   = var.backup_retention_period
 }
 
-resource "aws_network_interface" "web" {
-  subnet_id   = aws_subnet.main.id
-  private_ips = ["10.0.1.5"]
-  security_groups = [
-    aws_security_group.web.id
-  ]
+variable "aws_region" {
+  description = "The AWS region to deploy the MySQL instance in"
+  default     = "us-west-2"
 }
 
-resource "aws_security_group" "web" {
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "web-sg"
-  }
+variable "db_name" {
+  description = "The name of the MySQL database"
+  default     = "mydb"
 }
 
-resource "aws_eip" "web" {
-  instance = aws_instance.web.id
+variable "db_username" {
+  description = "The username for the MySQL database"
+  default     = "admin"
 }
 
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+variable "db_password" {
+  description = "The password for the MySQL database"
+  default     = "password"
 }
 
-resource "aws_subnet" "main" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
+variable "backup_window" {
+  description = "The daily time range during which automated backups are created if automated backups are enabled"
+  default     = "04:00-06:00"
 }
 
-variable "key_name" {
-  description = "The name of the key pair to use for the instance"
+variable "backup_retention_period" {
+  description = "The number of days to retain backups for"
+  default     = 7
 }
+```
