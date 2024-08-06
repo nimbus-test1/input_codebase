@@ -1,48 +1,7 @@
 
-# Documentation
-
-## Steps to Deploy Web Server on AWS EC2 using Terraform and GitHub Actions
-
-1. **Clone the repository**:
-    ```sh
-    git clone <repository-url>
-    cd <repository-directory>
-    ```
-
-2. **Add your AWS credentials**:
-    Ensure your AWS credentials are set up in your GitHub repository secrets:
-    - `AWS_ACCESS_KEY_ID`
-    - `AWS_SECRET_ACCESS_KEY`
-
-3. **Create an SSH key pair**:
-    ```sh
-    aws ec2 create-key-pair --key-name <key-pair-name> --query 'KeyMaterial' --output text > <key-pair-name>.pem
-    chmod 400 <key-pair-name>.pem
-    ```
-
-4. **Update Terraform variables**:
-    Modify `terraform/variables.tf` to include your key pair name:
-    ```hcl
-    variable "key_name" {
-      default = "<key-pair-name>"
-    }
-    ```
-
-5. **Commit and push the changes**:
-    ```sh
-    git add .
-    git commit -m "Add Terraform configuration for web server"
-    git push origin main
-    ```
-
-6. **GitHub Actions**:
-    On pushing to the `main` branch, the GitHub Actions workflow will automatically trigger, running Terraform to deploy the web server on AWS EC2.
-
-7. **Access the web server**:
-    Once the deployment is complete, retrieve the Elastic IP from the AWS Management Console or the Terraform output, and access the web server using the IP address.
-
-8. **Verify**:
-    Open a web browser and navigate to the Elastic IP to see the Apache2 Ubuntu Default Page.
-
-This setup creates a web server running on an AWS EC2 instance with Ubuntu, configured to allow HTTP and SSH traffic, and associates it with an Elastic IP.
-```
+1. Create a file named `mysql-config.yaml` and paste the YAML configuration content into it.
+2. Create a file named `main.tf` and paste the Terraform configuration content into it.
+3. Ensure you have AWS credentials configured and Terraform installed on your system.
+4. Initialize the Terraform working directory by running `terraform init`.
+5. Apply the configuration by running `terraform apply`. You will be prompted to review and confirm the changes.
+6. Verify the MySQL instance is created and configured with the specified backup settings.
