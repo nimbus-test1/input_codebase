@@ -1,29 +1,9 @@
 ```yaml
-name: Deploy Web Server on AWS EC2
-on:
-  push:
-    branches:
-      - main
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.11
-
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ./terraform
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-        working-directory: ./terraform
-
-      - name: Terraform Apply
-        run: terraform apply tfplan
-        working-directory: ./terraform
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+data:
+  backup_window: "04:00-06:00"
+  backup_retention_period: "7"
+```
