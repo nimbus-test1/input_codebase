@@ -1,10 +1,16 @@
 
-1. **Save the YAML configuration content to a file named `.github/workflows/terraform.yml` in your repository.**
+To deploy the web application using the provided YAML and Terraform configuration files, follow these steps:
 
-2. **Save the Terraform configuration content to a file named `main.tf` in your repository.**
+1. **Docker Compose (YAML) File:**
+   - Save the YAML content into a file named `docker-compose.yml`.
+   - Ensure Docker and Docker Compose are installed on your machine.
+   - Deploy the application using the following command:
+     ```sh
+     docker-compose up -d
+     ```
 
-3. **Ensure you have configured your AWS credentials correctly. You can set up AWS credentials as GitHub secrets and reference them in the workflow if needed.**
-
-4. **Push the changes to the `main` branch of your repository to trigger the workflow. The workflow will initialize Terraform, create a plan, and apply the changes automatically.**
-
-5. **Monitor the Actions tab in your GitHub repository to view the workflow execution and verify the deployment.**
+2. **Terraform Configuration:**
+   - Install Terraform from the official website.
+   - Save the Terraform HCL content into a file named `main.tf`.
+   - Initialize Terraform in your directory:
+     ```sh
