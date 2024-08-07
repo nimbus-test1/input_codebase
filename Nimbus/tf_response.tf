@@ -1,6 +1,17 @@
 
+```hcl
 provider "aws" {
   region = "us-west-2"
+}
+
+resource "aws_s3_bucket" "example" {
+  bucket = "my-unique-bucket-name"
+  acl    = "private"
+
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
 }
 
 resource "aws_instance" "example" {
@@ -11,7 +22,4 @@ resource "aws_instance" "example" {
     Name = "ExampleInstance"
   }
 }
-
-output "instance_ip" {
-  value = aws_instance.example.public_ip
-}
+```
