@@ -1,7 +1,1 @@
 
-1. Save the YAML content into a file named `mysql-config.yaml`.
-2. Apply the YAML configuration to your Kubernetes cluster using `kubectl apply -f mysql-config.yaml`.
-3. Save the Terraform content into a file named `main.tf`.
-4. Initialize your Terraform workspace by running `terraform init` in the directory containing `main.tf`.
-5. Apply the Terraform configuration by running `terraform apply` and follow the prompts to create the MySQL instance.
-6. Your MySQL database with the specified backup configuration should now be deployed to AWS.
