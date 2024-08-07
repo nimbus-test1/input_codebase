@@ -1,17 +1,9 @@
 
-1. **Clone the repository**: Ensure you have cloned the repository where you want to set up the Terraform infrastructure.
-
-2. **Configure AWS credentials**: Set up AWS credentials on your GitHub repository. Navigate to `Settings > Secrets > Actions`, and add the following secrets:
-   - `AWS_ACCESS_KEY_ID`
-   - `AWS_SECRET_ACCESS_KEY`
-
-3. **Commit and push changes**: Commit the YAML and Terraform files to the repository and push the changes to the `main` branch.
-
-4. **Trigger the workflow**: The GitHub Actions workflow will automatically trigger on push events to the `main` branch. It will:
-   - Checkout the repository
-   - Set up Terraform
-   - Initialize and validate the Terraform configuration
-   - Create an execution plan
-   - Apply the plan to deploy the infrastructure
-
-5. **Verify deployment**: After the workflow completes, verify the deployment by checking the AWS Management Console for the newly created S3 bucket. The bucket name will be the unique name specified in the Terraform configuration.
+1. Ensure you have Terraform installed on your local machine.
+2. Save the YAML configuration content as `config.yaml`.
+3. Save the Terraform configuration content as `main.tf`.
+4. Initialize Terraform in your working directory by running `terraform init`.
+5. Review the plan with `terraform plan`.
+6. Apply the configuration with `terraform apply`.
+7. Confirm the apply step by typing `yes` when prompted.
+8. Terraform will provision the MySQL database instance as per the configuration.
