@@ -1,23 +1,21 @@
 ```yaml
-name: Terraform Deploy
+name: Terraform Deployment
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   terraform:
+    name: 'Terraform Apply'
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Terraform
+    - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.0.0
@@ -25,13 +23,9 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
-    - name: Terraform Validate
-      run: terraform validate
-
     - name: Terraform Plan
-      run: terraform plan -out=tfplan
+      run: terraform plan
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main'
-      run: terraform apply -auto-approve tfplan
-```
+      run: terraform apply -auto-approve
