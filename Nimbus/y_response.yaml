@@ -4,6 +4,6 @@ kind: ConfigMap
 metadata:
   name: mysql-config
 data:
-  backup_window: "04:00-06:00"
-  backup_retention_period: "7"
+  backup-window: "03:00-04:00"
+  backup-retention: "7"
 ```
