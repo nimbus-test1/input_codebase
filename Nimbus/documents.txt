@@ -1,1 +1,9 @@
 
+To use these files:
+
+1. **Create a GitHub Repository**: Create a new repository on GitHub if you don't have one already.
+2. **Add YAML Workflow File**: Save the YAML content in a file named `.github/workflows/terraform.yml` in your repository.
+3. **Add Terraform Configuration**: Save the Terraform content in a file named `main.tf` in the root of your repository.
+4. **Configure AWS Credentials**: Ensure that your GitHub repository has the necessary AWS credentials set in the repository secrets. Add `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in the GitHub repository secrets.
+5. **Push to GitHub**: Commit and push the changes to the main branch of your repository.
+6. **Run Workflow**: The GitHub Actions workflow will automatically run on a push or pull request to the main branch, initializing, validating, planning, and applying the Terraform configuration.
