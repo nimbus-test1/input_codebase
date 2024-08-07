@@ -1,9 +1,8 @@
 
-1. Ensure you have Terraform installed on your local machine.
-2. Save the YAML configuration content as `config.yaml`.
-3. Save the Terraform configuration content as `main.tf`.
-4. Initialize Terraform in your working directory by running `terraform init`.
-5. Review the plan with `terraform plan`.
-6. Apply the configuration with `terraform apply`.
-7. Confirm the apply step by typing `yes` when prompted.
-8. Terraform will provision the MySQL database instance as per the configuration.
+1. Save the YAML content to a file named `mysql-config.yaml`.
+2. Save the Terraform content to a file named `main.tf`.
+3. Apply the Terraform configuration:
+   - Initialize Terraform: `terraform init`
+   - Plan the deployment: `terraform plan`
+   - Apply the configuration: `terraform apply`
+4. Use the `mysql-config.yaml` file for Kubernetes deployment if needed.
