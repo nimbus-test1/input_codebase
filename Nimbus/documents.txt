@@ -1,0 +1,19 @@
+
+1. **Setup GitHub Secrets:**
+   - Go to your repository on GitHub.
+   - Navigate to `Settings` > `Secrets`.
+   - Add the following secrets:
+     - `AWS_ACCESS_KEY_ID`
+     - `AWS_SECRET_ACCESS_KEY`
+
+2. **Commit and Push:**
+   - Ensure your Terraform configuration files are in the root directory of your repository.
+   - Commit and push your changes to the `main` branch.
+
+3. **Trigger Workflow:**
+   - The GitHub Actions workflow is configured to run on any push or pull request to the `main` branch.
+   - Verify that the workflow runs and successfully deploys the infrastructure.
+
+4. **Verify Deployment:**
+   - Check the AWS Console to ensure the resources (e.g., S3 bucket) have been created.
+   - Review the outputs in the GitHub Actions logs to see the Terraform outputs, such as the S3 bucket name.
