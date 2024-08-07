@@ -5,27 +5,41 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   terraform:
     name: 'Terraform'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+      checks: write
+      deployments: write
+      statuses: write
 
     steps:
-      - name: 'Checkout GitHub Actions'
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: 'Setup Terraform'
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 1.0.0
 
-      - name: 'Terraform Init'
+      - name: Terraform Init
         run: terraform init
 
-      - name: 'Terraform Plan'
-        run: terraform plan
+      - name: Terraform Validate
+        run: terraform validate
 
-      - name: 'Terraform Apply'
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
+```
