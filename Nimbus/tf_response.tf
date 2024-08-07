@@ -4,12 +4,12 @@ provider "aws" {
   region = "us-west-2"
 }
 
-resource "aws_s3_bucket" "example_bucket" {
-  bucket = "example-bucket-unique-name"
-  acl    = "private"
-}
+resource "aws_instance" "example" {
+  ami           = "ami-0c55b159cbfafe1f0"
+  instance_type = "t2.micro"
 
-output "bucket_name" {
-  value = aws_s3_bucket.example_bucket.bucket
+  tags = {
+    Name = "example-instance"
+  }
 }
 ```
