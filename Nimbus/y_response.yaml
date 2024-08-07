@@ -5,13 +5,9 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   terraform:
-    name: 'Terraform Apply'
     runs-on: ubuntu-latest
 
     steps:
@@ -35,8 +31,4 @@ jobs:
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve
-
-    - name: Terraform Destroy
-      if: github.event.pull_request.merged == true
-      run: terraform destroy -auto-approve
 ```
