@@ -1,11 +1,31 @@
 ```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mysql-config
-data:
-  MYSQL_DATABASE: mydatabase
-  MYSQL_USER: myuser
-  MYSQL_PASSWORD: mypassword
-  MYSQL_ROOT_PASSWORD: rootpassword
-```
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Checkout GitHub Actions'
+        uses: actions/checkout@v2
+
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
+
+      - name: 'Terraform Init'
+        run: terraform init
+
+      - name: 'Terraform Plan'
+        run: terraform plan
+
+      - name: 'Terraform Apply'
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve
