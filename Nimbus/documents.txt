@@ -1,8 +1,1 @@
 
-1. Save the YAML content to a file named `mysql-config.yaml`.
-2. Save the Terraform content to a file named `main.tf`.
-3. Apply the Terraform configuration:
-   - Initialize Terraform: `terraform init`
-   - Plan the deployment: `terraform plan`
-   - Apply the configuration: `terraform apply`
-4. Use the `mysql-config.yaml` file for Kubernetes deployment if needed.
